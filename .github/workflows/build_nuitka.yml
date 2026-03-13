@@ -42,7 +42,7 @@ jobs:
 
       - name: Build GUI with Nuitka
         run: |
-          python -m nuitka --standalone --onefile --clean \
+          python -m nuitka --standalone --onefile \
             --assume-yes-for-downloads \
             --output-filename=LumAPI_GUI-windows-amd64.exe \
             --include-data-dir=./lumapi=lumapi \
@@ -51,7 +51,7 @@ jobs:
 
       - name: Build CLI with Nuitka
         run: |
-          python -m nuitka --standalone --onefile --clean \
+          python -m nuitka --standalone --onefile \
             --assume-yes-for-downloads \
             --output-filename=LumAPI_CLI-windows-amd64.exe \
             --include-data-dir=./lumapi=lumapi \
@@ -100,7 +100,7 @@ jobs:
 
       - name: Build GUI with Nuitka
         run: |
-          python -m nuitka --standalone --onefile --clean \
+          python -m nuitka --standalone --onefile \
             --output-filename=LumAPI_GUI-linux-amd64 \
             --include-data-dir=./lumapi=lumapi \
             --enable-plugin=tk-inter \
@@ -108,7 +108,7 @@ jobs:
 
       - name: Build CLI with Nuitka
         run: |
-          python -m nuitka --standalone --onefile --clean \
+          python -m nuitka --standalone --onefile \
             --output-filename=LumAPI_CLI-linux-amd64 \
             --include-data-dir=./lumapi=lumapi \
             LumAPI_CLI.py
@@ -161,7 +161,7 @@ jobs:
 
       - name: Build GUI with Nuitka
         run: |
-          python -m nuitka --standalone --onefile --clean \
+          python -m nuitka --standalone --onefile \
             --output-filename=LumAPI_GUI-linux-arm64 \
             --include-data-dir=./lumapi=lumapi \
             --enable-plugin=tk-inter \
@@ -169,7 +169,7 @@ jobs:
 
       - name: Build CLI with Nuitka
         run: |
-          python -m nuitka --standalone --onefile --clean \
+          python -m nuitka --standalone --onefile \
             --output-filename=LumAPI_CLI-linux-arm64 \
             --include-data-dir=./lumapi=lumapi \
             LumAPI_CLI.py
