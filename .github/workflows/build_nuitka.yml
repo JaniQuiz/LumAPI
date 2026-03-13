@@ -10,6 +10,9 @@ permissions:
   contents: write
 
 jobs:
+  # ====================================================
+  # JOB 1: Windows x64
+  # ====================================================
   build-windows:
     name: Build Windows (amd64)
     runs-on: windows-latest
@@ -31,9 +34,6 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install nuitka zstandard  # Nuitka + onefile support
-
-      - name: Setup MSVC environment
-        uses: ilammy/msvc-dev-cmd@v1
 
       - name: Prepare Config and Init Files
         run: |
@@ -61,17 +61,12 @@ jobs:
           name: artifacts-windows
           path: '*.exe'
 
-  build-linux:
-    name: Build Linux (${{ matrix.arch }})
-    runs-on: ${{ matrix.runs-on }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - arch: amd64
-            runs-on: ubuntu-22.04
-          - arch: arm64
-            runs-on: ubuntu-22.04-arm
+  # ====================================================
+  # JOB 2: Linux AMD64
+  # ====================================================
+  build-linux-amd64:
+    name: Build Linux amd64
+    runs-on: ubuntu-22.04
     defaults:
       run:
         shell: bash
@@ -89,7 +84,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc python3-dev patchelf
+          sudo apt-get install -y gcc python3-dev patchelf libgtk-3-dev libgirepository1.0-dev libcairo2-dev pkg-config
 
       - name: Install Python dependencies
         run: |
@@ -104,7 +99,7 @@ jobs:
       - name: Build GUI with Nuitka
         run: |
           nuitka --standalone --onefile --clean \
-            --output-filename=LumAPI_GUI-linux-${{ matrix.arch }} \
+            --output-filename=LumAPI_GUI-linux-amd64 \
             --include-data-dir=./lumapi=lumapi \
             --enable-plugin=tk-inter \
             LumAPI_GUI.py
@@ -112,24 +107,85 @@ jobs:
       - name: Build CLI with Nuitka
         run: |
           nuitka --standalone --onefile --clean \
-            --output-filename=LumAPI_CLI-linux-${{ matrix.arch }} \
+            --output-filename=LumAPI_CLI-linux-amd64 \
             --include-data-dir=./lumapi=lumapi \
             LumAPI_CLI.py
 
       - name: Package executables
         run: |
-          tar -czvf LumAPI_GUI-linux-${{ matrix.arch }}.tar.gz LumAPI_GUI-linux-${{ matrix.arch }}
-          tar -czvf LumAPI_CLI-linux-${{ matrix.arch }}.tar.gz LumAPI_CLI-linux-${{ matrix.arch }}
+          tar -czvf LumAPI_GUI-linux-amd64.tar.gz LumAPI_GUI-linux-amd64
+          tar -czvf LumAPI_CLI-linux-amd64.tar.gz LumAPI_CLI-linux-amd64
 
       - name: Upload Linux Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: artifacts-linux-${{ matrix.arch }}
+          name: artifacts-linux-amd64
+          path: '*.tar.gz'
+
+  # ====================================================
+  # JOB 3: Linux ARM64
+  # ====================================================
+  build-linux-arm64:
+    name: Build Linux arm64
+    runs-on: ubuntu-22.04-arm
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc python3-dev patchelf libgtk-3-dev libgirepository1.0-dev libcairo2-dev pkg-config
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install nuitka zstandard
+
+      - name: Prepare Config and Init Files
+        run: |
+          mkdir -p lumapi
+          echo "{}" > lumapi/config.json
+
+      - name: Build GUI with Nuitka
+        run: |
+          nuitka --standalone --onefile --clean \
+            --output-filename=LumAPI_GUI-linux-arm64 \
+            --include-data-dir=./lumapi=lumapi \
+            --enable-plugin=tk-inter \
+            LumAPI_GUI.py
+
+      - name: Build CLI with Nuitka
+        run: |
+          nuitka --standalone --onefile --clean \
+            --output-filename=LumAPI_CLI-linux-arm64 \
+            --include-data-dir=./lumapi=lumapi \
+            LumAPI_CLI.py
+
+      - name: Package executables
+        run: |
+          tar -czvf LumAPI_GUI-linux-arm64.tar.gz LumAPI_GUI-linux-arm64
+          tar -czvf LumAPI_CLI-linux-arm64.tar.gz LumAPI_CLI-linux-arm64
+
+      - name: Upload Linux Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-linux-arm64
           path: '*.tar.gz'
 
   release:
     name: Create Release
-    needs: [build-windows, build-linux]
+    needs: [build-windows, build-linux-amd64, build-linux-arm64]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
