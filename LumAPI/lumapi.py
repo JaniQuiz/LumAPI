@@ -594,6 +594,17 @@ class LumFuncBase:
             
         return wrapper
     
+    def __del__(self):
+        """析构函数：在对象销毁时自动尝试关闭 Lumerical 进程"""
+        try:
+            # 检查句柄是否存在且是否有 close 方法
+            if hasattr(self, '_handle') and self._handle:
+                # print(f"正在自动关闭 Lumerical 句柄...")
+                self._handle.close()
+        except Exception:
+            # 忽略退出时的任何异常，确保不会产生冗余错误信息
+            pass
+    
 class FDTD(LumFuncBase):
     def __init__(self, lumapi, filename=None, key=None, hide=False, serverArgs={}, remoteArgs={}, **kwargs):
         handle = lumapi.FDTD(filename, key, hide, serverArgs, remoteArgs, **kwargs)
