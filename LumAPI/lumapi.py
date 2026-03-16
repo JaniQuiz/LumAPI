@@ -551,64 +551,72 @@ class lumerical:
     def INTERCONNECT(self, filename=None, key=None, hide=False, serverArgs={}, remoteArgs={}, **kwargs):
         self._check_config_and_prompt()
         return INTERCONNECT(self.lumapi, filename, key, hide, serverArgs, remoteArgs, **kwargs)
-    
-class FDTD():
-    def __init__(self, lumapi, filename=None, key = None, hide = False, serverArgs = {}, remoteArgs = {}, **kwargs):
-        self.lumapi = lumapi
-        self.filename = filename
-        
-        self.fdtd = lumapi.FDTD(filename, key, hide, serverArgs, remoteArgs, **kwargs)
+
+class LumFuncBase:
+    """Lumerical 功能基类，处理通用的 API 转发和参数预处理"""
+    def __init__(self, target_handle):
+        # 隐藏内部句柄，避免与转发逻辑冲突
+        self._handle = target_handle
+
+    def _process_arg(self, arg):
+        """
+        核心预处理逻辑：
+        1. 整型 ndarray -> 浮点型
+        2. 一维 ndarray (len > 1) -> 二维 [[...]]
+        """
+        if isinstance(arg, np.ndarray):
+            # 规则 1: 检查是否为整型数组并转换
+            if np.issubdtype(arg.dtype, np.integer):
+                arg = arg.astype(float)
+            
+            # 规则 2: 检查一维数组且长度不为 1，进行升维
+            if arg.ndim == 1 and arg.shape[0] != 1:
+                arg = arg[np.newaxis, :]
+        return arg
 
     def __getattr__(self, name):
-        '''
-        将原本函数转发回去
-        '''
-        return getattr(self.fdtd, name)
-    
-class MODE():
-    def __init__(self, lumapi, filename=None, key = None, hide = False, serverArgs = {}, remoteArgs = {}, **kwargs):
-        self.lumapi = lumapi
-        self.filename = filename
+        # 从 Lumerical 原始句柄中获取属性或方法
+        attr = getattr(self._handle, name)
         
-        if not filename:
-            self.mode = lumapi.MODE()
-        else:
-            self.mode = lumapi.MODE(filename, key, hide, serverArgs, remoteArgs, **kwargs)
+        # 如果不是可调用对象（如变量、常量），直接返回
+        if not callable(attr):
+            return attr
 
-    def __getattr__(self, name):
-        '''
-        将原本函数转发回去
-        '''
-        return getattr(self.mode, name)
+        # 如果是方法，返回包装函数进行参数拦截处理
+        def wrapper(*args, **kwargs):
+            # 处理位置参数
+            new_args = tuple(self._process_arg(arg) for arg in args)
+            # 处理关键字参数
+            new_kwargs = {k: self._process_arg(v) for k, v in kwargs.items()}
+            
+            # 调用原始 API 并返回结果
+            return attr(*new_args, **new_kwargs)
+            
+        return wrapper
     
-class DEVICE():
-    def __init__(self, lumapi, filename=None, key = None, hide = False, serverArgs = {}, remoteArgs = {}, **kwargs):
-        self.lumapi = lumapi
+class FDTD(LumFuncBase):
+    def __init__(self, lumapi, filename=None, key=None, hide=False, serverArgs={}, remoteArgs={}, **kwargs):
+        handle = lumapi.FDTD(filename, key, hide, serverArgs, remoteArgs, **kwargs)
+        super().__init__(handle)
         self.filename = filename
-        
-        if not filename:
-            self.device = lumapi.DEVICE()
-        else:
-            self.device = lumapi.DEVICE(filename, key, hide, serverArgs, remoteArgs, **kwargs)
 
-    def __getattr__(self, name):
-        '''
-        将原本函数转发回去
-        '''
-        return getattr(self.device, name)
-    
-class INTERCONNECT():
-    def __init__(self, lumapi, filename=None, key = None, hide = False, serverArgs = {}, remoteArgs = {}, **kwargs):
-        self.lumapi = lumapi
+class MODE(LumFuncBase):
+    def __init__(self, lumapi, filename=None, key=None, hide=False, serverArgs={}, remoteArgs={}, **kwargs):
+        handle = lumapi.MODE(filename, key, hide, serverArgs, remoteArgs, **kwargs)
+        super().__init__(handle)
         self.filename = filename
-        
-        self.interconnect = lumapi.INTERCONNECT(filename, key, hide, serverArgs, remoteArgs, **kwargs)
 
-    def __getattr__(self, name):
-        '''
-        将原本函数转发回去
-        '''
-        return getattr(self.interconnect, name)
+class DEVICE(LumFuncBase):
+    def __init__(self, lumapi, filename=None, key=None, hide=False, serverArgs={}, remoteArgs={}, **kwargs):
+        handle = lumapi.DEVICE(filename, key, hide, serverArgs, remoteArgs, **kwargs)
+        super().__init__(handle)
+        self.filename = filename
+
+class INTERCONNECT(LumFuncBase):
+    def __init__(self, lumapi, filename=None, key=None, hide=False, serverArgs={}, remoteArgs={}, **kwargs):
+        handle = lumapi.INTERCONNECT(filename, key, hide, serverArgs, remoteArgs, **kwargs)
+        super().__init__(handle)
+        self.filename = filename
     
 lumapi = lumerical()
 
