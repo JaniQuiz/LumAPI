@@ -34,22 +34,22 @@ LumAPI_CLI
 from LumAPI import *
 
 filename = 'simulation.fsp'
-fdtd = lumapi().FDTD(filename)
+fdtd = lumapi.FDTD(filename)
 fdtd.close()
 ```
 或者不进行lumerical配置，直接传入lumerical路径：
 ```python
 from LumAPI import *
 lumerical_path = 'C:/Program Files/Lumerical'
-version = 'v241
-fdtd = lumapi(lumerical_path=lumerical_path, version=version).FDTD(filename)
+version = 'v241'
+fdtd = lumerical(lumerical_path=lumerical_path, version=version).FDTD(filename)
 fdtd.close()
 ```
 或者传入config.json路径：
 ```python
 from LumAPI import *
 config_path = './config.json'
-fdtd = lumapi(config_path=config_path).FDTD(filename)
+fdtd = lumerical(config_path=config_path).FDTD(filename)
 fdtd.close()
 ```
 其中config.json文件内容如下：
@@ -103,7 +103,7 @@ fdtd.close()
 
 **代码示例：**
 ```python
-import LumAPI.lumapi as lumapi  # 根据实际导出结构调整导入路径
+from LumAPI import lumapi
 
 # 定义基础参数
 um = 1e-6
