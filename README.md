@@ -37,6 +37,28 @@ filename = 'simulation.fsp'
 fdtd = lumapi().FDTD(filename)
 fdtd.close()
 ```
+或者不进行lumerical配置，直接传入lumerical路径：
+```python
+from LumAPI import *
+lumerical_path = 'C:/Program Files/Lumerical'
+version = 'v241
+fdtd = lumapi(lumerical_path=lumerical_path, version=version).FDTD(filename)
+fdtd.close()
+```
+或者传入config.json路径：
+```python
+from LumAPI import *
+config_path = './config.json'
+fdtd = lumapi(config_path=config_path).FDTD(filename)
+fdtd.close()
+```
+其中config.json文件内容如下：
+```python
+{
+    "lumerical_path": "C:\\Program Files\\Lumerical",
+    "version": "v241"
+}
+```
 
 ## 📦 打包程序安装
 
