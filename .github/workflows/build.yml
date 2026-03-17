@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   build-windows:
-    name: Build Windows (amd64)
+    name: Build Windows (x86_64)
     runs-on: windows-latest
     defaults:
       run:
@@ -35,7 +35,7 @@ jobs:
       - name: Build GUI
         run: |
           pyinstaller --noconsole --onefile --clean \
-            --name LumAPI_GUI-windows-amd64.exe \
+            --name LumAPI_GUI-windows-x86_64.exe \
             --hidden-import numpy \
             --exclude-module matplotlib \
             --add-data "LumAPI;LumAPI" \
@@ -44,7 +44,7 @@ jobs:
       - name: Build CLI
         run: |
           pyinstaller --onefile --clean \
-            --name LumAPI_CLI-windows-amd64.exe \
+            --name LumAPI_CLI-windows-x86_64.exe \
             --hidden-import numpy \
             --exclude-module matplotlib \
             --add-data "LumAPI;LumAPI" \
