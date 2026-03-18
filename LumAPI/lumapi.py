@@ -278,7 +278,7 @@ def RorySommerfeld_Scalar(lamb, x_near, y_near, E_near, x_far, y_far, z_far, mod
     # 防止观察点与源点重合导致除以零 (r=0) 的极小偏移量
     eps = 1e-12 
 
-    # --- 3. 计算模块 ---
+    # 计算模块
     if mode in ['common', 'c']:
         print('Using common mode...')
         for ii in tqdm(range(len(y_near)), desc="Common Integration"):
@@ -364,7 +364,6 @@ def RorySommerfeld_Scalar(lamb, x_near, y_near, E_near, x_far, y_far, z_far, mod
     return E_far
 
 
-
 def RorySommerfeld_Vector(lamb, x_near, y_near, E_near_x, E_near_y, x_far, y_far, z_far, mode='numba'):
     '''
     lamb: 波长
@@ -379,151 +378,152 @@ def RorySommerfeld_Vector(lamb, x_near, y_near, E_near_x, E_near_y, x_far, y_far
 
     return: 远场电场数据
     '''
-    from tqdm import tqdm
+    from tqdm.auto import tqdm
 
-    # 确保远场坐标为一维数组
-    x_far = np.asarray(x_far)
-    y_far = np.asarray(y_far)
-    z_far = np.asarray(z_far)
-    if x_far.ndim == 0: x_far = x_far[np.newaxis]
-    if y_far.ndim == 0: y_far = y_far[np.newaxis]
-    if z_far.ndim == 0: z_far = z_far[np.newaxis]
+    # 确保近场坐标也是数组
+    x_near, y_near = np.atleast_1d(x_near), np.atleast_1d(y_near)
+
+    # 远场转换为 ndarray
+    x_far, y_far, z_far = np.atleast_1d(x_far), np.atleast_1d(y_far), np.atleast_1d(z_far)
+
+
+    # 计算近场积分面积元 dx * dy，保证能量量级随采样率守恒
+    dx = x_near[1] - x_near[0] if len(x_near) > 1 else 1.0
+    dy = y_near[1] - y_near[0] if len(y_near) > 1 else 1.0
+    ds = dx * dy 
 
     k = 2 * np.pi / lamb
-    # 生成远场网格（使用 'ij' 索引）
+    # 生成远场目标网格
     X_far, Y_far, Z_far = np.meshgrid(x_far, y_far, z_far, indexing='ij')
+    
     E_far_x = np.zeros_like(X_far, dtype=np.complex128)
-    E_far_y = np.zeros_like(Y_far, dtype=np.complex128)
-    E_far_z = np.zeros_like(Z_far, dtype=np.complex128)
+    E_far_y = np.zeros_like(X_far, dtype=np.complex128)
+    E_far_z = np.zeros_like(X_far, dtype=np.complex128)
+    
+    eps = 1e-12 
 
-
-    if mode == 'common' or mode == 'c':
-        print('Using normal mode...')
-        # 直接积分计算
-        for ii in tqdm(range(len(y_near))):
+    # 计算模块
+    if mode in ['common', 'c']:
+        print('Using common mode...')
+        for ii in tqdm(range(len(y_near)), desc="Common Vector Integration"):
             for jj in range(len(x_near)):
-                r = np.sqrt((X_far - x_near[jj])**2 + 
-                            (Y_far - y_near[ii])**2 + 
-                            Z_far**2)
-                exp_term = np.exp(1j*k*r)
-                common_factor = (-1/(2*np.pi) * Z_far / (r**2) * (1j*k - 1/r))
+                dx_r = X_far - x_near[jj]
+                dy_r = Y_far - y_near[ii]
+                r = np.sqrt(dx_r**2 + dy_r**2 + Z_far**2)
+                r = np.maximum(r, eps)
                 
-                E_far_x += E_near_x[ii,jj] * exp_term * common_factor
-
-                E_far_y += E_near_y[ii,jj] * exp_term * common_factor
+                # 提取公共核函数
+                kernel = (-1/(2*np.pi)) * (np.exp(1j*k*r) / r**2) * (1j*k - 1/r) * ds
                 
-                z_common_factor = (1/(2*np.pi) * Z_far / (r**2) * (1j*k - 1/r))
-                E_far_z += ((E_near_x[ii,jj] + E_near_y[ii,jj]) * exp_term * z_common_factor)
+                Ex_n = E_near_x[ii, jj]
+                Ey_n = E_near_y[ii, jj]
+                
+                # Ex和Ey由z距离主导，Ez由波阵面倾斜(x,y投影)主导
+                E_far_x += Ex_n * Z_far * kernel
+                E_far_y += Ey_n * Z_far * kernel
+                E_far_z += (Ex_n * dx_r + Ey_n * dy_r) * kernel
 
-    elif mode == 'vectorized' or mode == 'v':
-        print('Using vectorized mode...')
-        # 生成近场网格
-        X_near, Y_near = np.meshgrid(x_near, y_near, indexing='ij')
-
-        # 计算距离
-        dx = X_far[np.newaxis, :, :, np.newaxis] - X_near[:, :, np.newaxis, np.newaxis]
-        dy = Y_far[np.newaxis, :, :, np.newaxis] - Y_near[:, :, np.newaxis, np.newaxis]
-        dz = Z_far[np.newaxis, np.newaxis, :, :]  # 形状为 (1,1,len(y_far),len(z_far))
-        r = np.sqrt(dx**2 + dy**2 + dz**2)
-
-        # 计算x分量
-        factor_x = (-1/(2*np.pi) * E_near_x[:, :, np.newaxis, np.newaxis] * 
-                    np.exp(1j*k*r) * dz / (r**2) * (1j*k - 1/r))
-        
-        # 计算y分量
-        factor_y = (-1/(2*np.pi) * E_near_y[:, :, np.newaxis, np.newaxis] * 
-                    np.exp(1j*k*r) * dz / (r**2) * (1j*k - 1/r))
-        
-        # 计算z分量
-        factor_z = (1/(2*np.pi) * E_near_x[:, :, np.newaxis, np.newaxis] * 
-                    np.exp(1j*k*r) * dz / (r**2) * (1j*k - 1/r)) + \
-                (1/(2*np.pi) * E_near_y[:, :, np.newaxis, np.newaxis] * 
-                    np.exp(1j*k*r) * dz / (r**2) * (1j*k - 1/r))
-        
-        # 累加所有近场点贡献
-        E_far_x = np.sum(factor_x, axis=(0, 1))
-        E_far_y = np.sum(factor_y, axis=(0, 1))
-        E_far_z = np.sum(factor_z, axis=(0, 1))
-
-    elif mode == 'threaded' or mode == 't':
+    elif mode in ['threaded', 't']:
         print('Using joblib threaded mode...')
         from joblib import Parallel, delayed
-        
-        # 使用joblib多线程实现
         def compute_row(ii):
-            """计算单行的远场贡献"""
-            row_x = np.zeros_like(X_far, dtype=np.complex128)
-            row_y = np.zeros_like(Y_far, dtype=np.complex128)
-            row_z = np.zeros_like(Z_far, dtype=np.complex128)
-            
+            row_x, row_y, row_z = np.zeros_like(X_far, dtype=np.complex128), np.zeros_like(X_far, dtype=np.complex128), np.zeros_like(X_far, dtype=np.complex128)
             for jj in range(len(x_near)):
-                r = np.sqrt((X_far - x_near[jj])**2 + 
-                            (Y_far - y_near[ii])**2 + 
-                            Z_far**2)
-                exp_term = np.exp(1j*k*r)
-                common_factor = (-1/(2*np.pi) * Z_far / (r**2) * (1j*k - 1/r))
+                dx_r = X_far - x_near[jj]
+                dy_r = Y_far - y_near[ii]
+                r = np.sqrt(dx_r**2 + dy_r**2 + Z_far**2)
+                r = np.maximum(r, eps)
+                kernel = (-1/(2*np.pi)) * (np.exp(1j*k*r) / r**2) * (1j*k - 1/r) * ds
                 
-                # 计算x分量
-                row_x += E_near_x[ii,jj] * exp_term * common_factor
-
-                # 计算y分量
-                row_y += E_near_y[ii,jj] * exp_term * common_factor
-
-                # 计算z分量
-                z_common_factor = (1/(2*np.pi) * Z_far / (r**2) * (1j*k - 1/r))
-                row_z += (E_near_x[ii,jj] + E_near_y[ii,jj]) * exp_term * z_common_factor
-            
+                Ex_n = E_near_x[ii, jj]
+                Ey_n = E_near_y[ii, jj]
+                row_x += Ex_n * Z_far * kernel
+                row_y += Ey_n * Z_far * kernel
+                row_z += (Ex_n * dx_r + Ey_n * dy_r) * kernel
             return row_x, row_y, row_z
         
-        # 并行执行计算
         results = Parallel(n_jobs=-1)(
-            delayed(compute_row)(ii) 
-            for ii in tqdm(range(len(y_near)), desc="Processing rows")
+            delayed(compute_row)(ii) for ii in tqdm(range(len(y_near)), desc="Threaded Vector Integration")
         )
-        
-        # 合并结果
-        for row_x, row_y, row_z in results:
-            E_far_x += row_x
-            E_far_y += row_y
-            E_far_z += row_z
+        for rx, ry, rz in results:
+            E_far_x += rx
+            E_far_y += ry
+            E_far_z += rz
 
-    elif mode == 'numba' or mode == 'n':
-        print('Using numba mode...(numba mode has no progress bar)')
+    elif mode in ['vectorized', 'v']:
+        print('Using vectorized mode... (Warning: High Memory Usage)')
+        X_f = X_far[..., np.newaxis, np.newaxis]
+        Y_f = Y_far[..., np.newaxis, np.newaxis]
+        Z_f = Z_far[..., np.newaxis, np.newaxis]
+        
+        X_n = x_near.reshape(1, 1, 1, 1, -1)
+        Y_n = y_near.reshape(1, 1, 1, -1, 1)
+        Ex_n = E_near_x.reshape(1, 1, 1, len(y_near), len(x_near))
+        Ey_n = E_near_y.reshape(1, 1, 1, len(y_near), len(x_near))
+        
+        dx_r = X_f - X_n
+        dy_r = Y_f - Y_n
+        r = np.sqrt(dx_r**2 + dy_r**2 + Z_f**2)
+        r = np.maximum(r, eps)
+        
+        kernel = (-1/(2*np.pi)) * (np.exp(1j*k*r) / r**2) * (1j*k - 1/r) * ds
+        
+        # 沿着近场坐标(axis=3, 4)积分求和
+        E_far_x = np.sum(Ex_n * Z_f * kernel, axis=(3, 4))
+        E_far_y = np.sum(Ey_n * Z_f * kernel, axis=(3, 4))
+        E_far_z = np.sum((Ex_n * dx_r + Ey_n * dy_r) * kernel, axis=(3, 4))
+
+    elif mode in ['numba', 'n']:
+        print('Using numba hybrid mode...')
         import numba as nb
         
-        # Numba 加速的积分内核
-        @nb.njit(parallel=True, fastmath=True)
-        def compute_row_parallel(y_len, x_len, x_near, y_near, E_near_x, E_near_y, 
-                                X_far, Y_far, Z_far, k, E_far_x, E_far_y, E_far_z):
-            for ii in nb.prange(y_len):  # prange 启用多线程
-                for jj in range(x_len):
-                    # 计算距离
-                    r = np.sqrt((X_far - x_near[jj])**2 + 
-                                (Y_far - y_near[ii])**2 + 
-                                Z_far**2)
-                    exp_term = np.exp(1j*k*r)
-                    common_factor = (-1/(2*np.pi) * Z_far / (r**2) * (1j*k - 1/r))
-                    
-                    # 计算x分量
-                    E_far_x += (E_near_x[ii,jj] * exp_term * common_factor)
-                    
-                    # 计算y分量
-                    E_far_y += (E_near_y[ii,jj] * exp_term * common_factor)
-                    
-                    # 计算z分量
-                    z_common_factor = (1/(2*np.pi) * Z_far / (r**2) * (1j*k - 1/r))
-                    E_far_z += ((E_near_x[ii,jj] + E_near_y[ii,jj]) * exp_term * z_common_factor)
-            return E_far_x, E_far_y, E_far_z
+        # 展平远场网格，以便在外层套用 tqdm 进度条
+        shape_orig = X_far.shape
+        X_flat, Y_flat, Z_flat = X_far.ravel(), Y_far.ravel(), Z_far.ravel()
+        E_flat_x = np.zeros_like(X_flat, dtype=np.complex128)
+        E_flat_y = np.zeros_like(X_flat, dtype=np.complex128)
+        E_flat_z = np.zeros_like(X_flat, dtype=np.complex128)
         
-        # 调用 Numba 并行函数
-        E_far_x, E_far_y, E_far_z = compute_row_parallel(
-            len(y_near), len(x_near), x_near, y_near, 
-            E_near_x, E_near_y, X_far, Y_far, Z_far, k, 
-            E_far_x, E_far_y, E_far_z
-        )
-    # 计算总体电场强度（模值）
-    E_far = np.sqrt(np.abs(E_far_x)**2 + np.abs(E_far_y)**2 + np.abs(E_far_z)**2)
-    return E_far, E_far_x, E_far_y, E_far_z
+        # 内部 Numba 函数：计算单个远场观察点接收到的所有近场积分 (启用多线程加速)
+        @nb.njit(parallel=True, fastmath=True)
+        def compute_single_far_point_vector(xf, yf, zf, x_n, y_n, Ex_n, Ey_n, lamb, k, ds):
+            val_x, val_y, val_z = 0j, 0j, 0j
+            y_len, x_len = len(y_n), len(x_n)
+            
+            # prange 支持对标量 val 的自动线程归约 (Reduction)
+            for ii in nb.prange(y_len):
+                for jj in range(x_len):
+                    dx_r = xf - x_n[jj]
+                    dy_r = yf - y_n[ii]
+                    r = np.sqrt(dx_r**2 + dy_r**2 + zf**2)
+                    if r < 1e-12: r = 1e-12
+                    
+                    kernel = (-1/(2*np.pi)) * (np.exp(1j*k*r) / r**2) * (1j*k - 1/r) * ds
+                    ex = Ex_n[ii, jj]
+                    ey = Ey_n[ii, jj]
+                    
+                    val_x += ex * zf * kernel
+                    val_y += ey * zf * kernel
+                    val_z += (ex * dx_r + ey * dy_r) * kernel
+                    
+            return val_x, val_y, val_z
+
+        # 外层 Python 循环挂载 tqdm 
+        for i in tqdm(range(len(X_flat)), desc="Numba Vector Integration"):
+            vx, vy, vz = compute_single_far_point_vector(
+                X_flat[i], Y_flat[i], Z_flat[i], 
+                x_near, y_near, E_near_x, E_near_y, lamb, k, ds
+            )
+            E_flat_x[i], E_flat_y[i], E_flat_z[i] = vx, vy, vz
+        
+        # 还原回 3D 矩阵形状
+        E_far_x, E_far_y, E_far_z = E_flat_x.reshape(shape_orig), E_flat_y.reshape(shape_orig), E_flat_z.reshape(shape_orig)
+
+    else:
+        raise ValueError('Invalid mode')
+        
+    E_total = np.sqrt(np.abs(E_far_x)**2 + np.abs(E_far_y)**2 + np.abs(E_far_z)**2)
+    return E_total, E_far_x, E_far_y, E_far_z
 
 
 class lumerical:
