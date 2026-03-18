@@ -138,211 +138,232 @@ def Kirchhoff(lamb, x_near, y_near, E_near, x_far, y_far, z_far, mode='numba'):
 
     return: 远场电场数据np.ndarray(len(x_far),len(y_far),len(z_far))
     '''
-    from tqdm import tqdm
+    from tqdm.auto import tqdm
+    # 确保近场坐标也是数组
+    x_near, y_near = np.atleast_1d(x_near), np.atleast_1d(y_near)
 
-    # 确保远场坐标为一维数组
-    x_far = np.asarray(x_far)
-    y_far = np.asarray(y_far)
-    z_far = np.asarray(z_far)
-    if x_far.ndim == 0: x_far = x_far[np.newaxis]
-    if y_far.ndim == 0: y_far = y_far[np.newaxis]
-    if z_far.ndim == 0: z_far = z_far[np.newaxis]
+    # 远场转换为 ndarray
+    x_far, y_far, z_far = np.atleast_1d(x_far), np.atleast_1d(y_far), np.atleast_1d(z_far)
+    
+    # 积分面积元 dx * dy，使数值结果与采样密度无关
+    dx = x_near[1] - x_near[0] if len(x_near) > 1 else 1.0 # 注意最好用浮点数，避免使用整数值
+    dy = y_near[1] - y_near[0] if len(y_near) > 1 else 1.0
+    ds = dx * dy 
 
     k = 2 * np.pi / lamb
-    # 生成远场网格（使用 'ij' 索引）
     X_far, Y_far, Z_far = np.meshgrid(x_far, y_far, z_far, indexing='ij')
     E_far = np.zeros_like(X_far, dtype=np.complex128)
-    if mode == 'common' or mode == 'c':
-        print('Using normal mode...')
-        # 直接积分计算
-        E_far = np.zeros_like(X_far, dtype=complex)
-        for ii in tqdm(range(len(y_near))):
-            for jj in range(len(x_near)):
-                def E(r1, r2, x, y, z):
-                    r = np.sqrt((x - r1)**2 + (y - r2)**2 + z**2)
-                    return (1/(2j*lamb) * E_near[ii,jj]/r * 
-                        np.exp(1j*k*r) * (1 + z/r))
-                
-                E_far += E(x_near[jj], y_near[ii], X_far, Y_far, Z_far)
+    
+    # 处理 r=0 的极小偏移量，防止除以零崩溃
+    eps = 1e-12 
 
-    elif mode == 'threaded' or mode == 't':
+    if mode in ['common', 'c']:
+        print('Using normal mode...')
+        for ii in tqdm(range(len(y_near)), desc="Common Integration"):
+            for jj in range(len(x_near)):
+                r = np.sqrt((X_far - x_near[jj])**2 + (Y_far - y_near[ii])**2 + Z_far**2)
+                r = np.maximum(r, eps) # 防止 r=0
+                # 乘上了积分面元 ds
+                E_far += (1/(2j*lamb) * E_near[ii,jj]/r * np.exp(1j*k*r) * (1 + Z_far/r)) * ds
+
+    elif mode in ['threaded', 't']:
         print('Using joblib threaded mode...')
         from joblib import Parallel, delayed
-        # 使用joblib多线程实现
         def compute_row(ii):
-            """计算单行的远场贡献"""
             row_result = np.zeros_like(X_far, dtype=np.complex128)
             for jj in range(len(x_near)):
-                r = np.sqrt((X_far - x_near[jj])**2 + 
-                            (Y_far - y_near[ii])**2 + 
-                            Z_far**2)
-                row_result += (1/(2j*lamb) * E_near[ii,jj]/r * 
-                                np.exp(1j*k*r) * (1 + Z_far/r))
+                r = np.sqrt((X_far - x_near[jj])**2 + (Y_far - y_near[ii])**2 + Z_far**2)
+                r = np.maximum(r, eps)
+                row_result += (1/(2j*lamb) * E_near[ii,jj]/r * np.exp(1j*k*r) * (1 + Z_far/r)) * ds
             return row_result
         
-        # 并行执行计算
         results = Parallel(n_jobs=-1)(
-            delayed(compute_row)(ii) 
-            for ii in tqdm(range(len(y_near)))
+            delayed(compute_row)(ii) for ii in tqdm(range(len(y_near)), desc="Threaded Integration")
         )
-        
-        # 合并结果
         for row_result in results:
             E_far += row_result
 
-    elif mode == 'vectorized' or mode == 'v':
-        print('Using vectorized mode...')
-        # 生成近场网格
-        X_near, Y_near = np.meshgrid(x_near, y_near, indexing='ij')
-
-        # 计算距离
-        dx = X_far[np.newaxis, :, :, np.newaxis] - X_near[:, :, np.newaxis, np.newaxis]
-        dy = Y_far[np.newaxis, :, :, np.newaxis] - Y_near[:, :, np.newaxis, np.newaxis]
-        dz = Z_far[np.newaxis, np.newaxis, :, :]  # 形状为 (1,1,len(y_far),len(z_far))
-        r = np.sqrt(dx**2 + dy**2 + dz**2)
-
-        # 计算标量因子
-        factor = (1/(2j*lamb)) * E_near[:, :, np.newaxis, np.newaxis] / r * np.exp(1j*k*r) * (1 + dz/r)
+    elif mode in ['vectorized', 'v']:
+        print('Using vectorized mode... (Warning: High Memory Usage for large arrays)')
+        # 远场占前三个维度: (Nx_f, Ny_f, Nz_f, 1, 1)
+        X_f = X_far[..., np.newaxis, np.newaxis]
+        Y_f = Y_far[..., np.newaxis, np.newaxis]
+        Z_f = Z_far[..., np.newaxis, np.newaxis]
         
-        # 累加所有近场点贡献
-        E_far = np.sum(factor, axis=(0, 1))
-    
-    elif mode == 'numba' or mode == 'n':
-        print('Using numba mode...(numba mode has no progress bar)')
-        # 使用numba加速循环
-        # @jit(nopython=True, fastmath=True)  # 更高精度
-        # @jit(nopython=True, parallel=True)  # 并行加速
+        # 近场占后两个维度: (1, 1, 1, Ny_n, Nx_n)
+        X_n = x_near.reshape(1, 1, 1, 1, -1)
+        Y_n = y_near.reshape(1, 1, 1, -1, 1)
+        E_n = E_near.reshape(1, 1, 1, len(y_near), len(x_near))
+        
+        r = np.sqrt((X_f - X_n)**2 + (Y_f - Y_n)**2 + Z_f**2)
+        r = np.maximum(r, eps)
+        
+        # 核心运算
+        integrand = (1/(2j*lamb)) * (E_n / r) * np.exp(1j*k*r) * (1 + Z_f/r)
+        
+        # 沿着近场的 Y轴(axis=3) 和 X轴(axis=4) 积分求和
+        E_far = np.sum(integrand, axis=(3, 4)) * ds
+
+    elif mode in ['numba', 'n']:
+        print('Using numba hybrid mode...')
         import numba as nb
-        # Numba 加速的积分内核（不含 tqdm）
-        # 使用 Numba 并行加速的积分内核
-        @nb.njit(parallel=True, fastmath=True)
-        def compute_row_parallel(y_len, x_len, x_near, y_near, E_near, X_far, Y_far, Z_far, lamb, k, E_far):
-            for ii in nb.prange(y_len):  # prange 启用多线程
-                for jj in range(x_len):
-                    # 原始积分计算逻辑
-                    r = np.sqrt((X_far - x_near[jj])**2 + 
-                                (Y_far - y_near[ii])**2 + 
-                                Z_far**2)
-                    E_far += (1/(2j*lamb) * E_near[ii,jj]/r * 
-                            np.exp(1j*k*r) * (1 + Z_far/r))
-            return E_far
         
-        # 调用 Numba 并行函数
-        E_far = compute_row_parallel(len(y_near), len(x_near), x_near, y_near, E_near, X_far, Y_far, Z_far, lamb, k, E_far)
+        # 展平远场网格，以便在外层套用 tqdm 进度条
+        shape_orig = X_far.shape
+        X_flat = X_far.ravel()
+        Y_flat = Y_far.ravel()
+        Z_flat = Z_far.ravel()
+        E_flat = np.zeros_like(X_flat, dtype=np.complex128)
+        
+        # 内部 Numba 函数：计算单个远场观察点接收到的所有近场积分 (启用多线程加速)
+        @nb.njit(parallel=True, fastmath=True)
+        def compute_single_far_point(xf, yf, zf, x_n, y_n, E_n, lamb, k, ds):
+            val = 0j
+            y_len, x_len = len(y_n), len(x_n)
+            # prange 支持对标量 val 的自动线程归约 (Reduction)
+            for ii in nb.prange(y_len):
+                for jj in range(x_len):
+                    r = np.sqrt((xf - x_n[jj])**2 + (yf - y_n[ii])**2 + zf**2)
+                    if r < 1e-12: r = 1e-12
+                    val += (1/(2j*lamb) * E_n[ii,jj]/r * np.exp(1j*k*r) * (1 + zf/r)) * ds
+            return val
+            
+        # 外层 Python 循环挂载 tqdm
+        for i in tqdm(range(len(X_flat)), desc="Numba Integration"):
+            E_flat[i] = compute_single_far_point(
+                X_flat[i], Y_flat[i], Z_flat[i], 
+                x_near, y_near, E_near, lamb, k, ds
+            )
+            
+        # 还原回 3D 矩阵形状
+        E_far = E_flat.reshape(shape_orig)
 
     else:
         raise ValueError('Invalid mode(请检查输入的mode参数)')
+        
     return E_far
 
 def RorySommerfeld_Scalar(lamb, x_near, y_near, E_near, x_far, y_far, z_far, mode='numba'):
     '''
-    lamb: 波长
-    x_near, y_near: 近场位置数据，x_near和y_near应当是一维ndarry数组
-    E_near: 近场的电场数据，E_near应当是二维ndarry数组
-    x_far, y_far, z_far: 远场的位置数据，应当是一维数据或者数值
-    mode: 计算模式
-        'common'('c')，   : 普通循环计算模式，兼容所有平台，最稳定，但速度最慢
-        'threaded'('t')   : 多线程计算模式，能够吃满CPU资源，测试仅windows下可用，需要joblib库
-        'vectorized'('v') : 矢量化计算模式，计算小数据非常快，但大数据会容易爆内存(目前还没写好)
-        'numba'('n')      : numba计算模式，计算速度非常快，兼容windows和linux，需要numba库，**推荐使用**
-
-    return: 远场电场数据np.ndarray(len(x_far),len(y_far),len(z_far))
+    瑞利-索末菲(Rayleigh-Sommerfeld) 标量衍射积分公式
+    
+    参数:
+        lamb: 波长
+        x_near, y_near: 近场位置数据 (允许输入单个数字或一维数组)
+        E_near: 近场的电场数据 (二维数组)
+        x_far, y_far, z_far: 远场的位置数据 (允许输入单个数字或一维数组)
+        mode: 计算模式 ('common', 'threaded', 'vectorized', 'numba')
+        
+    返回:
+        E_far: 远场电场数据，形状为 (len(x_far), len(y_far), len(z_far))
     '''
-    from tqdm import tqdm
+    from tqdm.auto import tqdm
+    
+    # 确保近场坐标也是数组
+    x_near, y_near = np.atleast_1d(x_near), np.atleast_1d(y_near)
 
-    # 确保远场坐标为一维数组
-    x_far = np.asarray(x_far)
-    y_far = np.asarray(y_far)
-    z_far = np.asarray(z_far)
-    if x_far.ndim == 0: x_far = x_far[np.newaxis]
-    if y_far.ndim == 0: y_far = y_far[np.newaxis]
-    if z_far.ndim == 0: z_far = z_far[np.newaxis]
+    # 远场转换为 ndarray
+    x_far, y_far, z_far = np.atleast_1d(x_far), np.atleast_1d(y_far), np.atleast_1d(z_far)
+
+    # 计算近场积分面积元 dx * dy，保证能量量级随采样率守恒
+    dx = x_near[1] - x_near[0] if len(x_near) > 1 else 1.0
+    dy = y_near[1] - y_near[0] if len(y_near) > 1 else 1.0
+    ds = dx * dy 
 
     k = 2 * np.pi / lamb
-    # 生成远场网格（使用 'ij' 索引）
+    # 生成远场目标网格
     X_far, Y_far, Z_far = np.meshgrid(x_far, y_far, z_far, indexing='ij')
     E_far = np.zeros_like(X_far, dtype=np.complex128)
-    if mode == 'common' or mode == 'c':
-        print('Using normal mode...')
-        # 直接积分计算
-        E_far = np.zeros_like(X_far, dtype=complex)
-        for ii in tqdm(range(len(y_near))):
-            for jj in range(len(x_near)):
-                def E(r1, r2, x, y, z):
-                    r = np.sqrt((x - r1)**2 + (y - r2)**2 + z**2)
-                    return (1/(1j*lamb) * E_near[ii,jj]/r * 
-                        np.exp(1j*k*r) * (z/r))
-                
-                E_far += E(x_near[jj], y_near[ii], X_far, Y_far, Z_far)
+    
+    # 防止观察点与源点重合导致除以零 (r=0) 的极小偏移量
+    eps = 1e-12 
 
-    elif mode == 'threaded' or mode == 't':
+    # --- 3. 计算模块 ---
+    if mode in ['common', 'c']:
+        print('Using common mode...')
+        for ii in tqdm(range(len(y_near)), desc="Common Integration"):
+            for jj in range(len(x_near)):
+                r = np.sqrt((X_far - x_near[jj])**2 + (Y_far - y_near[ii])**2 + Z_far**2)
+                r = np.maximum(r, eps)
+                # 瑞利索末菲公式: 1/(1j*lamb) 且倾斜因子为 Z_far/r
+                E_far += (1/(1j*lamb) * E_near[ii,jj]/r * np.exp(1j*k*r) * (Z_far/r)) * ds
+
+    elif mode in ['threaded', 't']:
         print('Using joblib threaded mode...')
         from joblib import Parallel, delayed
-        # 使用joblib多线程实现
         def compute_row(ii):
-            """计算单行的远场贡献"""
             row_result = np.zeros_like(X_far, dtype=np.complex128)
             for jj in range(len(x_near)):
-                r = np.sqrt((X_far - x_near[jj])**2 + 
-                            (Y_far - y_near[ii])**2 + 
-                            Z_far**2)
-                row_result += (1/(1j*lamb) * E_near[ii,jj]/r * 
-                                np.exp(1j*k*r) * (Z_far/r))
+                r = np.sqrt((X_far - x_near[jj])**2 + (Y_far - y_near[ii])**2 + Z_far**2)
+                r = np.maximum(r, eps)
+                row_result += (1/(1j*lamb) * E_near[ii,jj]/r * np.exp(1j*k*r) * (Z_far/r)) * ds
             return row_result
         
-        # 并行执行计算
         results = Parallel(n_jobs=-1)(
-            delayed(compute_row)(ii) 
-            for ii in tqdm(range(len(y_near)))
+            delayed(compute_row)(ii) for ii in tqdm(range(len(y_near)), desc="Threaded Integration")
         )
-        
-        # 合并结果
         for row_result in results:
             E_far += row_result
 
-    elif mode == 'vectorized' or mode == 'v':
-        print('Using vectorized mode...')
-        # 生成近场网格
-        X_near, Y_near = np.meshgrid(x_near, y_near, indexing='ij')
-
-        # 计算距离
-        dx = X_far[np.newaxis, :, :, np.newaxis] - X_near[:, :, np.newaxis, np.newaxis]
-        dy = Y_far[np.newaxis, :, :, np.newaxis] - Y_near[:, :, np.newaxis, np.newaxis]
-        dz = Z_far[np.newaxis, np.newaxis, :, :]  # 形状为 (1,1,len(y_far),len(z_far))
-        r = np.sqrt(dx**2 + dy**2 + dz**2)
-
-        # 计算标量因子
-        factor = (1/(2j*lamb)) * E_near[:, :, np.newaxis, np.newaxis] / r * np.exp(1j*k*r) * (1 + dz/r)
+    elif mode in ['vectorized', 'v']:
+        print('Using vectorized mode... (Warning: Very High Memory Usage for large grids)')
+        # 利用 5D 广播：远场占前三个维度，近场占后两个维度
+        X_f = X_far[..., np.newaxis, np.newaxis]
+        Y_f = Y_far[..., np.newaxis, np.newaxis]
+        Z_f = Z_far[..., np.newaxis, np.newaxis]
         
-        # 累加所有近场点贡献
-        E_far = np.sum(factor, axis=(0, 1))
-    
-    elif mode == 'numba' or mode == 'n':
-        print('Using numba mode...(numba mode has no progress bar)')
-        # 使用numba加速循环
-        # @jit(nopython=True, fastmath=True)  # 更高精度
-        # @jit(nopython=True, parallel=True)  # 并行加速
+        X_n = x_near.reshape(1, 1, 1, 1, -1)
+        Y_n = y_near.reshape(1, 1, 1, -1, 1)
+        E_n = E_near.reshape(1, 1, 1, len(y_near), len(x_near))
+        
+        r = np.sqrt((X_f - X_n)**2 + (Y_f - Y_n)**2 + Z_f**2)
+        r = np.maximum(r, eps)
+        
+        integrand = (1/(1j*lamb)) * (E_n / r) * np.exp(1j*k*r) * (Z_f/r)
+        
+        # 对近场的 Y轴(axis=3) 和 X轴(axis=4) 积分求和
+        E_far = np.sum(integrand, axis=(3, 4)) * ds
+
+    elif mode in ['numba', 'n']:
+        print('Using numba hybrid mode...')
         import numba as nb
-        # Numba 加速的积分内核（不含 tqdm）
-        # 使用 Numba 并行加速的积分内核
-        @nb.njit(parallel=True, fastmath=True)
-        def compute_row_parallel(y_len, x_len, x_near, y_near, E_near, X_far, Y_far, Z_far, lamb, k, E_far):
-            for ii in nb.prange(y_len):  # prange 启用多线程
-                for jj in range(x_len):
-                    # 原始积分计算逻辑
-                    r = np.sqrt((X_far - x_near[jj])**2 + 
-                                (Y_far - y_near[ii])**2 + 
-                                Z_far**2)
-                    E_far += (1/(1j*lamb) * E_near[ii,jj]/r * 
-                            np.exp(1j*k*r) * (Z_far/r))
-            return E_far
         
-        # 调用 Numba 并行函数
-        E_far = compute_row_parallel(len(y_near), len(x_near), x_near, y_near, E_near, X_far, Y_far, Z_far, lamb, k, E_far)
+        # 展平远场网格，以便在外层套用 tqdm 进度条
+        shape_orig = X_far.shape
+        X_flat = X_far.ravel()
+        Y_flat = Y_far.ravel()
+        Z_flat = Z_far.ravel()
+        E_flat = np.zeros_like(X_flat, dtype=np.complex128)
+        
+        # 内部 Numba 函数：计算单个远场观察点接收到的所有近场积分 (启用多线程加速)
+        @nb.njit(parallel=True, fastmath=True)
+        def compute_single_far_point(xf, yf, zf, x_n, y_n, E_n, lamb, k, ds):
+            val = 0j
+            y_len, x_len = len(y_n), len(x_n)
+            # prange 支持对标量 val 的自动线程归约 (Reduction)
+            for ii in nb.prange(y_len):
+                for jj in range(x_len):
+                    r = np.sqrt((xf - x_n[jj])**2 + (yf - y_n[ii])**2 + zf**2)
+                    if r < 1e-12: r = 1e-12
+                    val += (1/(1j*lamb) * E_n[ii,jj]/r * np.exp(1j*k*r) * (zf/r)) * ds
+            return val
+            
+        # 外层 Python 循环挂载 tqdm
+        for i in tqdm(range(len(X_flat)), desc="Numba Integration"):
+            E_flat[i] = compute_single_far_point(
+                X_flat[i], Y_flat[i], Z_flat[i], 
+                x_near, y_near, E_near, lamb, k, ds
+            )
+            
+        # 还原回 3D 矩阵形状
+        E_far = E_flat.reshape(shape_orig)
 
     else:
-        raise ValueError('Invalid mode(请检查输入的mode参数)')
+        raise ValueError('Invalid mode (请检查输入的 mode 参数)')
+        
     return E_far
+
+
 
 def RorySommerfeld_Vector(lamb, x_near, y_near, E_near_x, E_near_y, x_far, y_far, z_far, mode='numba'):
     '''
