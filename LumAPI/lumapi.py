@@ -28,9 +28,11 @@ def detect_version(lumerical_root):
     except Exception:
         return None
 
+
 def get_lumapi_path(lumerical_root, version):
     """从Lumerical根路径和版本获取lumapi.py路径"""
     return os.path.join(lumerical_root, version, "api", "python", "lumapi.py")
+
 
 def validate_path(lumerical_root: str, version: str = None) -> object:
     """验证Lumerical路径有效性并返回lumapi对象
@@ -78,6 +80,7 @@ def validate_path(lumerical_root: str, version: str = None) -> object:
         print(f"错误：路径验证失败 - {str(e)}")
         return None
 
+
 def create_cmap(color_list, cmap_name="custom_cmap"):
     """
     根据传入的颜色列表创建自定义的渐变色映射
@@ -124,33 +127,38 @@ def create_cmap(color_list, cmap_name="custom_cmap"):
     
     return cmap
 
-def Kirchhoff(lamb, x_near, y_near, E_near, x_far, y_far, z_far, mode='numba', software='FDTD'):
-    '''
-    lamb: 波长
-    x_near, y_near: 近场位置数据，x_near和y_near应当是一维ndarry数组
-    E_near: 近场的电场数据，E_near应当是二维ndarry数组
-    x_far, y_far, z_far: 远场的位置数据，应当是一维数据或者数值
-    mode: 计算模式
-        'common'('c')     : 普通循环计算模式，兼容所有平台，最稳定，但速度最慢
-        'threaded'('t')   : 多线程计算模式，能够吃满CPU资源，测试仅windows下可用，需要joblib库
-        'vectorized'('v') : 矢量化计算模式，计算小数据非常快，但大数据会容易爆内存
-        'numba'('n')      : numba计算模式，计算速度非常快，兼容windows和linux，需要numba库，**推荐使用**
-    software: 来源软件类型
-        'FDTD' 或 'Lumerical' : 采用 exp(+ikz) 相位约定 (默认)
-        'COMSOL' 或 'CST'     : 采用 exp(-ikz) 相位约定
 
-    return: 远场电场数据np.ndarray(len(x_far),len(y_far),len(z_far))
+def Kirchhoff(lamb, x_near, y_near, E_near, x_far, y_far, z_far, mode='numba', software='+'):
+    '''
+    基尔霍夫(Kirchhoff) 衍射积分公式
+
+    参数: 
+        lamb: 波长
+        x_near, y_near: 近场位置数据，x_near和y_near应当是一维ndarry数组
+        E_near: 近场的电场数据，E_near应当是二维ndarry数组
+        x_far, y_far, z_far: 远场的位置数据，应当是一维数据或者数值
+        mode: 计算模式
+            'common'('c')     : 普通循环计算模式，兼容所有平台，最稳定，但速度最慢
+            'threaded'('t')   : 多线程计算模式，能够吃满CPU资源，仅windows下可用，需要joblib库
+            'vectorized'('v') : 矢量化计算模式，计算小数据非常快，但大数据会容易爆内存
+            'numba'('n')      : numba计算模式，计算速度非常快，兼容windows和linux，需要numba库，**推荐使用**
+        software: 波传播相位约定/来源软件类型
+            '+', 'FDTD' 或 'Lumerical' : 采用 exp(+ikz) 相位约定 (默认)
+            '-', 'COMSOL' 或 'CST'     : 采用 exp(-ikz) 相位约定
+
+    返回:
+        E_far: 远场电场数据，形状为 (len(x_far), len(y_far), len(z_far))
     '''
     from tqdm.auto import tqdm
 
     # 确定相位约定符号
     software = software.upper()
-    if software in ['FDTD', 'LUMERICAL']:
+    if software in ['+', 'FDTD', 'LUMERICAL']:
         sg = 1.0
-    elif software in ['COMSOL', 'CST']:
+    elif software in ['-', 'COMSOL', 'CST']:
         sg = -1.0
     else:
-        raise ValueError("software 参数必须是 'FDTD', 'LUMERICAL', 'COMSOL', 或 'CST'")
+        raise ValueError("software 参数必须是'+', '-', 'FDTD', 'LUMERICAL', 'COMSOL', 或 'CST'")
 
     # 确保近场坐标也是数组
     x_near, y_near = np.atleast_1d(x_near), np.atleast_1d(y_near)
@@ -257,17 +265,23 @@ def Kirchhoff(lamb, x_near, y_near, E_near, x_far, y_far, z_far, mode='numba', s
     return E_far
 
 
-def RorySommerfeld_Scalar(lamb, x_near, y_near, E_near, x_far, y_far, z_far, mode='numba', software='FDTD'):
+def RayleighSommerfeld_Scalar(lamb, x_near, y_near, E_near, x_far, y_far, z_far, mode='numba', software='+'):
     '''
     瑞利-索末菲(Rayleigh-Sommerfeld) 标量衍射积分公式
     
-    参数:
+    参数: 
         lamb: 波长
-        x_near, y_near: 近场位置数据 (允许输入单个数字或一维数组)
-        E_near: 近场的电场数据 (二维数组)
-        x_far, y_far, z_far: 远场的位置数据 (允许输入单个数字或一维数组)
-        mode: 计算模式 ('common', 'threaded', 'vectorized', 'numba')
-        software: 'FDTD' (默认) 或 'COMSOL'
+        x_near, y_near: 近场位置数据，x_near和y_near应当是一维ndarry数组
+        E_near: 近场的电场数据，E_near应当是二维ndarry数组
+        x_far, y_far, z_far: 远场的位置数据，应当是一维数据或者数值
+        mode: 计算模式
+            'common'('c')     : 普通循环计算模式，兼容所有平台，最稳定，但速度最慢
+            'threaded'('t')   : 多线程计算模式，能够吃满CPU资源，仅windows下可用，需要joblib库
+            'vectorized'('v') : 矢量化计算模式，计算小数据非常快，但大数据会容易爆内存
+            'numba'('n')      : numba计算模式，计算速度非常快，兼容windows和linux，需要numba库，**推荐使用**
+        software: 波传播相位约定/来源软件类型
+            '+', 'FDTD' 或 'Lumerical' : 采用 exp(+ikz) 相位约定 (默认)
+            '-', 'COMSOL' 或 'CST'     : 采用 exp(-ikz) 相位约定
         
     返回:
         E_far: 远场电场数据，形状为 (len(x_far), len(y_far), len(z_far))
@@ -275,12 +289,12 @@ def RorySommerfeld_Scalar(lamb, x_near, y_near, E_near, x_far, y_far, z_far, mod
     from tqdm.auto import tqdm
 
     software = software.upper()
-    if software in ['FDTD', 'LUMERICAL']:
+    if software in ['+', 'FDTD', 'LUMERICAL']:
         sg = 1.0
-    elif software in ['COMSOL', 'CST']:
+    elif software in ['-', 'COMSOL', 'CST']:
         sg = -1.0
     else:
-        raise ValueError("software 参数必须是 'FDTD', 'LUMERICAL', 'COMSOL', 或 'CST'")
+        raise ValueError("software 参数必须是'+', '-', 'FDTD', 'LUMERICAL', 'COMSOL', 或 'CST'")
 
     # 确保近场坐标也是数组
     x_near, y_near = np.atleast_1d(x_near), np.atleast_1d(y_near)
@@ -386,26 +400,38 @@ def RorySommerfeld_Scalar(lamb, x_near, y_near, E_near, x_far, y_far, z_far, mod
         
     return E_far
 
-def RorySommerfeld_Vector(lamb, x_near, y_near, E_near_x, E_near_y, x_far, y_far, z_far, mode='numba', software='FDTD'):
-    '''
-    lamb: 波长
-    x_near, y_near: 近场位置数据，x_near和y_near应当是一维ndarry数组
-    E_near_x, E_near_y: 近场的电场数据的xy分量，E_near_x和E_near_y应当是二维ndarry数组
-    x_far, y_far, z_far: 远场的位置数据，应当是一维数据或者数值
-    mode: 计算模式 ('common', 'threaded', 'vectorized', 'numba')
-    software: 'FDTD' (默认) 或 'COMSOL'
 
-    return: 远场电场数据
+def RayleighSommerfeld_Vector(lamb, x_near, y_near, E_near_x, E_near_y, x_far, y_far, z_far, mode='numba', software='+'):
+    '''
+    瑞利-索末菲(Rayleigh-Sommerfeld) 矢量衍射积分公式
+
+    参数: 
+        lamb: 波长
+        x_near, y_near: 近场位置数据，x_near和y_near应当是一维ndarry数组
+        E_near: 近场的电场数据，E_near应当是二维ndarry数组
+        x_far, y_far, z_far: 远场的位置数据，应当是一维数据或者数值
+        mode: 计算模式
+            'common'('c')     : 普通循环计算模式，兼容所有平台，最稳定，但速度最慢
+            'threaded'('t')   : 多线程计算模式，能够吃满CPU资源，仅windows下可用，需要joblib库
+            'vectorized'('v') : 矢量化计算模式，计算小数据非常快，但大数据会容易爆内存
+            'numba'('n')      : numba计算模式，计算速度非常快，兼容windows和linux，需要numba库，**推荐使用**
+        software: 波传播相位约定/来源软件类型
+            '+', 'FDTD' 或 'Lumerical' : 采用 exp(+ikz) 相位约定 (默认)
+            '-', 'COMSOL' 或 'CST'     : 采用 exp(-ikz) 相位约定
+        
+    返回:
+        E_total: 远场电场数据，形状为 (len(x_far), len(y_far), len(z_far))
+        E_far_x, E_far_y, E_far_z: 远场电场各个分量数据，形状为 (len(x_far), len(y_far), len(z_far))
     '''
     from tqdm.auto import tqdm
 
     software = software.upper()
-    if software in ['FDTD', 'LUMERICAL']:
+    if software in ['+', 'FDTD', 'LUMERICAL']:
         sg = 1.0
-    elif software in ['COMSOL', 'CST']:
+    elif software in ['-', 'COMSOL', 'CST']:
         sg = -1.0
     else:
-        raise ValueError("software 参数必须是 'FDTD', 'LUMERICAL', 'COMSOL', 或 'CST'")
+        raise ValueError("software 参数必须是'+', '-', 'FDTD', 'LUMERICAL', 'COMSOL', 或 'CST'")
 
     # 确保近场坐标也是数组
     x_near, y_near = np.atleast_1d(x_near), np.atleast_1d(y_near)
@@ -547,9 +573,9 @@ def RorySommerfeld_Vector(lamb, x_near, y_near, E_near_x, E_near_y, x_far, y_far
     return E_total, E_far_x, E_far_y, E_far_z
 
 
-def AngularSpectrum_Vector(lamb, x_near, y_near, E_near_x, E_near_y, x_far, y_far, z_far, mode='fft', software='FDTD'):
+def AngularSpectrum_Vector(lamb, x_near, y_near, E_near_x, E_near_y, x_far, y_far, z_far, mode='numba', software='+'):
     '''
-    矢量角谱法 (Vector Angular Spectrum) 3D 衍射传播
+    矢量角谱法 (Vector Angular Spectrum) 衍射传播
     
     参数:
         lamb: 波长
@@ -557,17 +583,26 @@ def AngularSpectrum_Vector(lamb, x_near, y_near, E_near_x, E_near_y, x_far, y_fa
         E_near_x, E_near_y: 近场电场横向分量 (二维数组)
         x_far, y_far, z_far: 远场坐标 (允许为单个数字或一维数组)
         mode: ('fft' 或 'numba')
-        software: 'FDTD' (默认) 或 'COMSOL'
+        mode: 计算模式
+            'fft'('f')    : 快速傅里叶变换，计算速度极快，占用计算资源很小，严格要求 x_far, y_far 与近场网格完全一致。
+            'numba'('n')  : 逆傅里叶积分。允许计算任意形状远场，不受限制，占用计算资源较大。
+        software: 'FDTD' (默认) 或 'COMSOL'software: 波传播相位约定/来源软件类型
+            '+', 'FDTD' 或 'Lumerical' : 采用 exp(+ikz) 相位约定 (默认)
+            '-', 'COMSOL' 或 'CST'     : 采用 exp(-ikz) 相位约定
+
+    返回:
+        E_total: 远场电场数据，形状为 (len(x_far), len(y_far), len(z_far))
+        E_far_x, E_far_y, E_far_z: 远场电场各个分量数据，形状为 (len(x_far), len(y_far), len(z_far))
     '''
     from tqdm.auto import tqdm
 
     software = software.upper()
-    if software in ['FDTD', 'LUMERICAL']:
+    if software in ['+', 'FDTD', 'LUMERICAL']:
         sg = 1.0
-    elif software in ['COMSOL', 'CST']:
+    elif software in ['-', 'COMSOL', 'CST']:
         sg = -1.0
     else:
-        raise ValueError("software 参数必须是 'FDTD', 'LUMERICAL', 'COMSOL', 或 'CST'")
+        raise ValueError("software 参数必须是'+', '-', 'FDTD', 'LUMERICAL', 'COMSOL', 或 'CST'")
 
     x_near, y_near = np.atleast_1d(x_near), np.atleast_1d(y_near)
     x_far, y_far, z_far = np.atleast_1d(x_far), np.atleast_1d(y_far), np.atleast_1d(z_far)
@@ -646,8 +681,8 @@ def AngularSpectrum_Vector(lamb, x_near, y_near, E_near_x, E_near_y, x_far, y_fa
             E_far_y[:, :, i] = np.fft.ifft2(np.fft.ifftshift(Ay * H)) / (dx * dy)
             E_far_z[:, :, i] = np.fft.ifft2(np.fft.ifftshift(Az * H)) / (dx * dy)
             
-        E_tot = np.sqrt(np.abs(E_far_x)**2 + np.abs(E_far_y)**2 + np.abs(E_far_z)**2)
-        return E_tot, E_far_x, E_far_y, E_far_z
+        E_total = np.sqrt(np.abs(E_far_x)**2 + np.abs(E_far_y)**2 + np.abs(E_far_z)**2)
+        return E_total, E_far_x, E_far_y, E_far_z
 
     elif mode in ['numba', 'n']:
         print(f"Using numba manual inverse-FT mode... (Phase convention: {software})")
@@ -690,12 +725,11 @@ def AngularSpectrum_Vector(lamb, x_near, y_near, E_near_x, E_near_y, x_far, y_fa
             E_flat_x[i], E_flat_y[i], E_flat_z[i] = vx, vy, vz
 
         E_far_x, E_far_y, E_far_z = E_flat_x.reshape(shape_orig), E_flat_y.reshape(shape_orig), E_flat_z.reshape(shape_orig)
-        E_tot = np.sqrt(np.abs(E_far_x)**2 + np.abs(E_far_y)**2 + np.abs(E_far_z)**2)
+        E_total = np.sqrt(np.abs(E_far_x)**2 + np.abs(E_far_y)**2 + np.abs(E_far_z)**2)
         
-        return E_tot, E_far_x, E_far_y, E_far_z
+        return E_total, E_far_x, E_far_y, E_far_z
     else:
         raise ValueError("Invalid mode. Please use 'fft' or 'numba'.")
-
 
 
 class lumerical:
