@@ -106,8 +106,8 @@ E_near_x_minus = aperture * np.exp(1j * phase_minus)
         <div style="margin-top: auto; padding-top: 15px; font-size: 0.85em; color: #333333;">
             <p style="margin: 0 0 5px 0;"><b>计算模式差异 (Numba - FFT)</b></p>
             <ul style="margin: 0; padding-left: 15px;">
-                <li>XY 最大差值: 974.67, 平均差值: 1.6548</li>
-                <li>XZ 最大差值: 974.67, 平均差值: 5.2743</li>
+                <li>XY 最大差值: 1.1892e-10, 平均差值: 1.3582e-13</li>
+                <li>XZ 最大差值: 7.7307e-11, 平均差值: 3.8210e-13</li>
             </ul>
         </div>
     </div>
@@ -117,8 +117,8 @@ E_near_x_minus = aperture * np.exp(1j * phase_minus)
         <div style="margin-top: auto; padding-top: 15px; font-size: 0.85em; color: #333333;">
             <p style="margin: 0 0 5px 0;"><b>相位约定差异 (Minus - Plus)</b></p>
             <ul style="margin: 0; padding-left: 15px;">
-                <li>XY 最大差值: 7.2750e-3, 平均差值: 1.1299e-4</li>
-                <li>XZ 最大差值: 2.0151e+0, 平均差值: 1.5260e-2</li>
+                <li>XY 最大差值: 4.5475e-13, 平均差值: 1.9947e-16</li>
+                <li>XZ 最大差值: 5.6843e-13, 平均差值: 1.0690e-15</li>
             </ul>
         </div>
     </div>
