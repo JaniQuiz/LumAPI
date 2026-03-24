@@ -105,7 +105,7 @@ E_xy_v = Kirchhoff(lamb, x_n, y_n, E_near_plus, x_f_scan, x_f_scan, f_design, mo
 E_xz_v = Kirchhoff(lamb, x_n, y_n, E_near_plus, x_xz_scan, 0.0, z_scan, mode='v', software='+')
 ```
 
-<table>
+<table align="center">
   <tr>
     <td width="50%" align="center">
       <img src="./pics/Kirchhoff_plus_vectorized_Z.jpg" alt="Z轴分布" width="300"><br>
@@ -134,7 +134,7 @@ E_xy_t = Kirchhoff(lamb, x_n, y_n, E_near_plus, x_f_scan, x_f_scan, f_design, mo
 E_xz_t = Kirchhoff(lamb, x_n, y_n, E_near_plus, x_xz_scan, 0.0, z_scan, mode='t', software='+')
 ```
 
-<table>
+<table align="center">
   <tr>
     <td width="50%" align="center">
       <img src="./pics/Kirchhoff_plus_threaded_Z.jpg" alt="Z轴分布" width="300"><br>
@@ -163,7 +163,7 @@ E_xy_c = Kirchhoff(lamb, x_n, y_n, E_near_plus, x_f_scan, x_f_scan, f_design, mo
 E_xz_c = Kirchhoff(lamb, x_n, y_n, E_near_plus, x_xz_scan, 0.0, z_scan, mode='c', software='+')
 ```
 
-<table>
+<table align="center">
   <tr>
     <td width="50%" align="center">
       <img src="./pics/Kirchhoff_plus_common_Z.jpg" alt="Z轴分布" width="300"><br>
@@ -198,7 +198,7 @@ E_xy_m = Kirchhoff(lamb, x_n, y_n, E_near_minus, x_f_scan, x_f_scan, f_design, m
 E_xz_m = Kirchhoff(lamb, x_n, y_n, E_near_minus, x_xz_scan, 0.0, z_scan, mode='n', software='-')
 ```
 
-<table>
+<table align="center">
   <tr>
     <td width="50%" align="center">
       <img src="./pics/Kirchhoff_minus_numba_Z.jpg" alt="负约定 Z轴" width="300"><br>
@@ -247,7 +247,7 @@ diff_xz_conv = np.abs(I_xz_minus - I_xz_numba)
 <h3 id="31-mode-diff">3.1 不同计算模式差值分析</h3>
 <p>下图展示了 Numba、Vectorized 和 Threaded 模式与纯 Common 基准模式计算结果的差值。为避免极其微小的机器浮点误差（~1e-15 量级）被 Colorbar 自动缩放机制放大为显著的色彩噪点，绘图时已将 Colorbar 的上限统一固定为 <code>1e-10</code>。由于最大误差远低于此阈值，所有图像理论上应呈现为均匀的零值底色，这验证了各并行加速模式在底层物理积分上的绝对等价性。</p>
 
-<table>
+<table align="center">
   <tr>
     <td width="33%" align="center" valign="bottom">
       <img src="./pics/Kirchhoff_diff_numba_c_XY.jpg" alt="Numba vs Common XY" width="100%"><br>
@@ -285,7 +285,7 @@ diff_xz_conv = np.abs(I_xz_minus - I_xz_numba)
 <h3 id="32-phase-diff">3.2 不同相位约定差值分析</h3>
 <p>下图展示了在 Numba 模式下，采用正相位约定 <code>software='+'</code> 与负相位约定 <code>software='-'</code> 得到的光强分布的绝对差值。这证明了即使复数电场中虚部的演化方向完全相反，算法仍能正确保证物理标量场能量的绝对一致性。</p>
 
-<table>
+<table align="center">
   <tr>
     <td align="center">
       <img src="./pics/Kirchhoff_diff_minus_plus_XY.jpg" alt="Minus vs Plus XY" width="600">
