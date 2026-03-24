@@ -172,6 +172,31 @@ def create_cmap(color_list, cmap_name="custom_cmap"):
     return cmap
 
 
+def Estimate_focal(lamb, r, focal_theory):
+    '''
+    理论预估焦距偏移率，参考文章：[Focal shift in metasurface based lenses](https://doi.org/10.1364/OE.26.008001)
+
+    参数
+    ---------------
+    lamb: 波长
+    r: 透镜半径
+    focal_theory: 理论焦距
+
+    返回
+    ---------------    
+    focal_real: 实际焦距
+    p: 透镜偏移率
+    '''
+    # 菲涅尔数
+    N = r**2/lamb/focal_theory
+
+    # 计算焦点的偏移率
+    # 1.4641是圆形的情况
+    p = 1.4641/(2*N+1.4641)
+    focal_real = focal_theory*(1-p)
+
+    return focal_real, p
+
 def Kirchhoff(lamb, x_near, y_near, E_near, x_far, y_far, z_far, mode='numba', software='+'):
     '''
     基尔霍夫(Kirchhoff) 衍射积分公式
