@@ -77,25 +77,24 @@ E_xy = Kirchhoff(lamb, x_n, y_n, E_near_plus, x_f_scan, x_f_scan, f_design, mode
 E_xz = Kirchhoff(lamb, x_n, y_n, E_near_plus, x_xz_scan, 0.0, z_scan, mode='n', software='+')
 ```
 
-<table width="50%">
+<table>
   <tr>
-    <td width="50%" align="center">
-      <img src="./pics/Kirchhoff_plus_numba_Z.jpg" alt="Z轴分布" width="100%"><br>
+    <td align="center">
+      <img src="./pics/Kirchhoff_plus_numba_Z.jpg" alt="Z轴分布" width="300"><br>
       <sup><b>图 1.1a:</b> Z轴分布。精确吻合设计焦距 50 μm。</sup>
     </td>
-    <td width="50%" align="center">
-      <img src="./pics/Kirchhoff_plus_numba_XY.jpg" alt="XY焦平面" width="100%"><br>
+    <td align="center">
+      <img src="./pics/Kirchhoff_plus_numba_XY.jpg" alt="XY焦平面" width="300"><br>
       <sup><b>图 1.1b:</b> 焦平面分布。呈现完美的圆形 Airy 斑。</sup>
     </td>
   </tr>
   <tr>
     <td colspan="2" align="center">
-      <img src="./pics/Kirchhoff_plus_numba_XZ.jpg" alt="XZ平面全景" width="100%"><br>
+      <img src="./pics/Kirchhoff_plus_numba_XZ.jpg" alt="XZ平面全景" width="600"><br>
       <sup><b>图 1.1c:</b> XZ 传播截面。清晰展示光束以 50 μm 为焦点的沙漏形态。</sup>
     </td>
   </tr>
 </table>
-
 
 <h3 id="12-vectorized">1.2 Vectorized 矢量化模式 (mode='v')</h3>
 <p>利用 Numpy 矢量计算的方式。单线计算极快，依赖大内存服务器进行全分辨率计算。</p>
@@ -106,20 +105,20 @@ E_xy_v = Kirchhoff(lamb, x_n, y_n, E_near_plus, x_f_scan, x_f_scan, f_design, mo
 E_xz_v = Kirchhoff(lamb, x_n, y_n, E_near_plus, x_xz_scan, 0.0, z_scan, mode='v', software='+')
 ```
 
-<table width="50%">
+<table>
   <tr>
     <td width="50%" align="center">
-      <img src="./pics/Kirchhoff_plus_vectorized_Z.jpg" width="100%"><br>
+      <img src="./pics/Kirchhoff_plus_vectorized_Z.jpg" alt="Z轴分布" width="300"><br>
       <sup><b>图 1.2a:</b> Z轴分布</sup>
     </td>
     <td width="50%" align="center">
-      <img src="./pics/Kirchhoff_plus_vectorized_XY.jpg" width="100%"><br>
+      <img src="./pics/Kirchhoff_plus_vectorized_XY.jpg" alt="XY焦平面" width="300"><br>
       <sup><b>图 1.2b:</b> 焦平面分布</sup>
     </td>
   </tr>
   <tr>
     <td colspan="2" align="center">
-      <img src="./pics/Kirchhoff_plus_vectorized_XZ.jpg" width="100%"><br>
+      <img src="./pics/Kirchhoff_plus_vectorized_XZ.jpg" alt="XZ平面全景" width="600"><br>
       <sup><b>图 1.2c:</b> XZ 传播截面</sup>
     </td>
   </tr>
@@ -135,20 +134,20 @@ E_xy_t = Kirchhoff(lamb, x_n, y_n, E_near_plus, x_f_scan, x_f_scan, f_design, mo
 E_xz_t = Kirchhoff(lamb, x_n, y_n, E_near_plus, x_xz_scan, 0.0, z_scan, mode='t', software='+')
 ```
 
-<table width="50%">
+<table>
   <tr>
     <td width="50%" align="center">
-      <img src="./pics/Kirchhoff_plus_threaded_Z.jpg" width="100%"><br>
+      <img src="./pics/Kirchhoff_plus_threaded_Z.jpg" alt="Z轴分布" width="300"><br>
       <sup><b>图 1.3a:</b> Z轴分布</sup>
     </td>
     <td width="50%" align="center">
-      <img src="./pics/Kirchhoff_plus_threaded_XY.jpg" width="100%"><br>
+      <img src="./pics/Kirchhoff_plus_threaded_XY.jpg" alt="XY焦平面" width="300"><br>
       <sup><b>图 1.3b:</b> 焦平面分布</sup>
     </td>
   </tr>
   <tr>
     <td colspan="2" align="center">
-      <img src="./pics/Kirchhoff_plus_threaded_XZ.jpg" width="100%"><br>
+      <img src="./pics/Kirchhoff_plus_threaded_XZ.jpg" alt="XZ平面全景" width="600"><br>
       <sup><b>图 1.3c:</b> XZ 传播截面</sup>
     </td>
   </tr>
@@ -164,20 +163,20 @@ E_xy_c = Kirchhoff(lamb, x_n, y_n, E_near_plus, x_f_scan, x_f_scan, f_design, mo
 E_xz_c = Kirchhoff(lamb, x_n, y_n, E_near_plus, x_xz_scan, 0.0, z_scan, mode='c', software='+')
 ```
 
-<table width="50%">
+<table>
   <tr>
     <td width="50%" align="center">
-      <img src="./pics/Kirchhoff_plus_common_Z.jpg" width="100%"><br>
+      <img src="./pics/Kirchhoff_plus_common_Z.jpg" alt="Z轴分布" width="300"><br>
       <sup><b>图 1.4a:</b> Z轴分布</sup>
     </td>
     <td width="50%" align="center">
-      <img src="./pics/Kirchhoff_plus_common_XY.jpg" width="100%"><br>
+      <img src="./pics/Kirchhoff_plus_common_XY.jpg" alt="XY焦平面" width="300"><br>
       <sup><b>图 1.4b:</b> 焦平面分布</sup>
     </td>
   </tr>
   <tr>
     <td colspan="2" align="center">
-      <img src="./pics/Kirchhoff_plus_common_XZ.jpg" width="100%"><br>
+      <img src="./pics/Kirchhoff_plus_common_XZ.jpg" alt="XZ平面全景" width="600"><br>
       <sup><b>图 1.4c:</b> XZ 传播截面</sup>
     </td>
   </tr>
@@ -199,20 +198,20 @@ E_xy_m = Kirchhoff(lamb, x_n, y_n, E_near_minus, x_f_scan, x_f_scan, f_design, m
 E_xz_m = Kirchhoff(lamb, x_n, y_n, E_near_minus, x_xz_scan, 0.0, z_scan, mode='n', software='-')
 ```
 
-<table width="50%">
+<table>
   <tr>
     <td width="50%" align="center">
-      <img src="./pics/Kirchhoff_minus_numba_Z.jpg" alt="负约定 Z轴" width="100%"><br>
+      <img src="./pics/Kirchhoff_minus_numba_Z.jpg" alt="负约定 Z轴" width="300"><br>
       <sup><b>图 2.1a:</b> 负约定 Z 轴光强。与图 1.1a 分布完全相同。</sup>
     </td>
     <td width="50%" align="center">
-      <img src="./pics/Kirchhoff_minus_numba_XY.jpg" alt="负约定 XY" width="100%"><br>
+      <img src="./pics/Kirchhoff_minus_numba_XY.jpg" alt="负约定 XY" width="300"><br>
       <sup><b>图 2.1b:</b> 负约定焦平面分布。物理结果不受数学符号干扰。</sup>
     </td>
   </tr>
   <tr>
     <td colspan="2" align="center">
-      <img src="./pics/Kirchhoff_minus_numba_XZ.jpg" alt="负约定 XZ" width="100%"><br>
+      <img src="./pics/Kirchhoff_minus_numba_XZ.jpg" alt="负约定 XZ" width="600"><br>
       <sup><b>图 2.1c:</b> 负约定 XZ 传播截面。相位流向已正确映射回实际物理空间。</sup>
     </td>
   </tr>
@@ -248,7 +247,7 @@ diff_xz_conv = np.abs(I_xz_minus - I_xz_numba)
 <h3 id="31-mode-diff">3.1 不同计算模式差值分析</h3>
 <p>下图展示了 Numba、Vectorized 和 Threaded 模式与纯 Common 基准模式计算结果的差值。为避免极其微小的机器浮点误差（~1e-15 量级）被 Colorbar 自动缩放机制放大为显著的色彩噪点，绘图时已将 Colorbar 的上限统一固定为 <code>1e-10</code>。由于最大误差远低于此阈值，所有图像理论上应呈现为均匀的零值底色，这验证了各并行加速模式在底层物理积分上的绝对等价性。</p>
 
-<table width="100%">
+<table>
   <tr>
     <td width="33%" align="center" valign="bottom">
       <img src="./pics/Kirchhoff_diff_numba_c_XY.jpg" alt="Numba vs Common XY" width="100%"><br>
@@ -286,15 +285,15 @@ diff_xz_conv = np.abs(I_xz_minus - I_xz_numba)
 <h3 id="32-phase-diff">3.2 不同相位约定差值分析</h3>
 <p>下图展示了在 Numba 模式下，采用正相位约定 <code>software='+'</code> 与负相位约定 <code>software='-'</code> 得到的光强分布的绝对差值。这证明了即使复数电场中虚部的演化方向完全相反，算法仍能正确保证物理标量场能量的绝对一致性。</p>
 
-<table width="50%">
+<table>
   <tr>
     <td align="center">
-      <img src="./pics/Kirchhoff_diff_minus_plus_XY.jpg" alt="Minus vs Plus XY" width="100%">
+      <img src="./pics/Kirchhoff_diff_minus_plus_XY.jpg" alt="Minus vs Plus XY" width="600">
     </td>
   </tr>
   <tr>
     <td align="center">
-      <img src="./pics/Kirchhoff_diff_minus_plus_XZ.jpg" alt="Minus vs Plus XZ" width="100%">
+      <img src="./pics/Kirchhoff_diff_minus_plus_XZ.jpg" alt="Minus vs Plus XZ" width="600">
     </td>
   </tr>
   <tr>
