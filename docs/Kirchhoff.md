@@ -77,7 +77,7 @@ E_xy = Kirchhoff(lamb, x_n, y_n, E_near_plus, x_f_scan, x_f_scan, f_design, mode
 E_xz = Kirchhoff(lamb, x_n, y_n, E_near_plus, x_xz_scan, 0.0, z_scan, mode='n', software='+')
 ```
 
-<table>
+<table align="center">
   <tr>
     <td align="center">
       <img src="./pics/Kirchhoff_plus_numba_Z.jpg" alt="Z轴分布" width="300"><br>
