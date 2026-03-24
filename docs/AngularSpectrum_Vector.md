@@ -184,8 +184,8 @@ E_tot_n_xz_m, _, _, _ = AngularSpectrum_Vector(lamb, x_n, y_n, E_near_x_minus, E
     <td align="center">
       <div align="left" style="display:inline-block;">
         <b>Numba - FFT</b><br>
-        <sup>XY 平面最大差值: 1.1892e-10, 平均差值: 1.3582e-13<br>
-        XZ 截面最大差值: 7.7307e-11, 平均差值: 3.8210e-13</sup>
+        <sup>XY 平面最大差值: 1.1653e-10, 平均差值: 1.3550e-13<br>
+        XZ 截面最大差值: 7.8103e-11, 平均差值: 3.8223e-13</sup>
       </div><br>
       <sup><b>图 3.1:</b> Numba 与 FFT 模式绝对差值 (上: XY平面, 下: XZ截面)</sup>
     </td>
