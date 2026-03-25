@@ -1,6 +1,7 @@
 # 矢量角谱法 (Vector Angular Spectrum) 验证报告
 
-本文档旨在验证基于矢量角谱衍射理论的 Python 传播函数的正确性与性能。验证场景设定为**近红外超透镜 (Metalens) 的点聚焦模拟**。角谱法通过分解空间频率 (Plane Wave Expansion) 进行严格传播，在处理非傍轴 (Non-paraxial)、高频倏逝波 (Evanescent waves) 时具有极高的理论精度。
+本文档旨在验证基于矢量角谱衍射理论的 Python 传播函数的正确性与性能。验证场景设定为**近红外超透镜 (Metalens) 的点聚焦模拟**。角谱法通过分解空间频率 (Plane Wave Expansion) 进行严格传播，在处理非傍轴 (Non-paraxial)、高频倏逝波 (Evanescent waves) 时具有极高的理论精度。  
+本文图片生成脚本: [AngularSpectrum_Vector.py](AngularSpectrum_Vector.py)
 
 ### ⚙️ 仿真物理参数设置
 * **工作波长 (λ)**: 1.55 μm
