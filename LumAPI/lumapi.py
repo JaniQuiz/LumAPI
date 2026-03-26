@@ -219,8 +219,40 @@ def Kirchhoff(lamb, x_near, y_near, E_near, x_far, y_far, z_far, mode='numba', s
     返回:
         E_far: 远场电场数据，形状为 (len(x_far), len(y_far), len(z_far))  
     '''
-    from tqdm.auto import tqdm
+    # 数据类型检查
+    # 检查波长 (必须是正实数)
+    if not isinstance(lamb, (int, float)) or lamb <= 0:
+        raise ValueError(f"波长 lamb 必须是大于0的实数，当前输入为: {lamb}")
 
+    # 将近场坐标转为 numpy 数组并剔除多余维度
+    x_near = np.atleast_1d(np.squeeze(np.asarray(x_near)))
+    y_near = np.atleast_1d(np.squeeze(np.asarray(y_near)))
+    E_near = np.asarray(E_near, dtype=np.complex128)
+
+    if x_near.ndim != 1 or y_near.ndim != 1:
+        raise ValueError(f"x_near 和 y_near 必须是一维数组。当前维度: x_near({x_near.ndim}D), y_near({y_near.ndim}D)")
+    if E_near.ndim != 2:
+        raise ValueError(f"E_near 必须是二维数组。当前维度: {E_near.ndim}D")
+
+    # 检查近场网格尺寸是否与电场矩阵匹配
+    expected_shape = (len(y_near), len(x_near))
+    if E_near.shape != expected_shape:
+        raise ValueError(f"E_near 的形状 {E_near.shape} 与近场坐标网格不匹配！期望形状为 (len(y_near), len(x_near)): {expected_shape}")
+
+    # 检查远场坐标并转为 1D
+    x_far = np.atleast_1d(np.squeeze(np.asarray(x_far)))
+    y_far = np.atleast_1d(np.squeeze(np.asarray(y_far)))
+    z_far = np.atleast_1d(np.squeeze(np.asarray(z_far)))
+
+    if x_far.ndim != 1 or y_far.ndim != 1 or z_far.ndim != 1:
+        raise ValueError("x_far, y_far, z_far 必须是标量或一维数组。")
+
+    # 检查字符串参数类型
+    if not isinstance(mode, str) or not isinstance(software, str):
+        raise TypeError("mode 和 software 参数必须是字符串。")
+
+    # 开始主体代码部分
+    from tqdm.auto import tqdm
     # 确定相位约定符号
     software = software.upper()
     if software in ['+', 'FDTD', 'Lumerical']:
@@ -229,12 +261,6 @@ def Kirchhoff(lamb, x_near, y_near, E_near, x_far, y_far, z_far, mode='numba', s
         sg = -1.0
     else:
         raise ValueError("software 参数必须是'+', '-', 'FDTD', 'LUMERICAL', 'COMSOL', 或 'CST'")
-
-    # 确保近场坐标也是数组
-    x_near, y_near = np.atleast_1d(x_near), np.atleast_1d(y_near)
-
-    # 远场转换为 ndarray
-    x_far, y_far, z_far = np.atleast_1d(x_far), np.atleast_1d(y_far), np.atleast_1d(z_far)
     
     # 积分面积元 dx * dy，使数值结果与采样密度无关
     dx = x_near[1] - x_near[0] if len(x_near) > 1 else 1.0 # 注意最好用浮点数，避免使用整数值
@@ -358,6 +384,39 @@ def RayleighSommerfeld_Scalar(lamb, x_near, y_near, E_near, x_far, y_far, z_far,
     ------------------
         E_far: 远场电场数据，形状为 (len(x_far), len(y_far), len(z_far))
     '''
+    # 数据类型检查
+    # 检查波长 (必须是正实数)
+    if not isinstance(lamb, (int, float)) or lamb <= 0:
+        raise ValueError(f"波长 lamb 必须是大于0的实数，当前输入为: {lamb}")
+
+    # 将近场坐标转为 numpy 数组并剔除多余维度
+    x_near = np.atleast_1d(np.squeeze(np.asarray(x_near)))
+    y_near = np.atleast_1d(np.squeeze(np.asarray(y_near)))
+    E_near = np.asarray(E_near, dtype=np.complex128)
+
+    if x_near.ndim != 1 or y_near.ndim != 1:
+        raise ValueError(f"x_near 和 y_near 必须是一维数组。当前维度: x_near({x_near.ndim}D), y_near({y_near.ndim}D)")
+    if E_near.ndim != 2:
+        raise ValueError(f"E_near 必须是二维数组。当前维度: {E_near.ndim}D")
+
+    # 检查近场网格尺寸是否与电场矩阵匹配
+    expected_shape = (len(y_near), len(x_near))
+    if E_near.shape != expected_shape:
+        raise ValueError(f"E_near 的形状 {E_near.shape} 与近场坐标网格不匹配！期望形状为 (len(y_near), len(x_near)): {expected_shape}")
+
+    # 检查远场坐标并转为 1D
+    x_far = np.atleast_1d(np.squeeze(np.asarray(x_far)))
+    y_far = np.atleast_1d(np.squeeze(np.asarray(y_far)))
+    z_far = np.atleast_1d(np.squeeze(np.asarray(z_far)))
+
+    if x_far.ndim != 1 or y_far.ndim != 1 or z_far.ndim != 1:
+        raise ValueError("x_far, y_far, z_far 必须是标量或一维数组。")
+
+    # 检查字符串参数类型
+    if not isinstance(mode, str) or not isinstance(software, str):
+        raise TypeError("mode 和 software 参数必须是字符串。")
+
+    # 主体计算代码
     from tqdm.auto import tqdm
 
     software = software.upper()
@@ -367,12 +426,6 @@ def RayleighSommerfeld_Scalar(lamb, x_near, y_near, E_near, x_far, y_far, z_far,
         sg = -1.0
     else:
         raise ValueError("software 参数必须是'+', '-', 'FDTD', 'LUMERICAL', 'COMSOL', 或 'CST'")
-
-    # 确保近场坐标也是数组
-    x_near, y_near = np.atleast_1d(x_near), np.atleast_1d(y_near)
-
-    # 远场转换为 ndarray
-    x_far, y_far, z_far = np.atleast_1d(x_far), np.atleast_1d(y_far), np.atleast_1d(z_far)
 
     # 计算近场积分面积元 dx * dy，保证能量量级随采样率守恒
     dx = x_near[1] - x_near[0] if len(x_near) > 1 else 1.0
@@ -497,8 +550,43 @@ def RayleighSommerfeld_Vector(lamb, x_near, y_near, E_near_x, E_near_y, x_far, y
     E_total                   : 远场电场数据，形状为 (len(x_far), len(y_far), len(z_far))  
     E_far_x, E_far_y, E_far_z : 远场电场各个分量数据，形状为 (len(x_far), len(y_far), len(z_far))
     '''
-    from tqdm.auto import tqdm
+    # 检查波长 (必须是正实数)
+    if not isinstance(lamb, (int, float)) or lamb <= 0:
+        raise ValueError(f"波长 lamb 必须是大于0的实数，当前输入为: {lamb}")
 
+    # 将近场坐标转为 1D numpy 数组
+    x_near = np.atleast_1d(np.squeeze(np.asarray(x_near)))
+    y_near = np.atleast_1d(np.squeeze(np.asarray(y_near)))
+    
+    if x_near.ndim != 1 or y_near.ndim != 1:
+        raise ValueError(f"x_near 和 y_near 必须是一维数组。当前维度: x_near({x_near.ndim}D), y_near({y_near.ndim}D)")
+
+    # 将近场电场分量转为复数数组
+    E_near_x = np.asarray(E_near_x, dtype=np.complex128)
+    E_near_y = np.asarray(E_near_y, dtype=np.complex128)
+
+    if E_near_x.ndim != 2 or E_near_y.ndim != 2:
+        raise ValueError(f"E_near_x 和 E_near_y 必须是二维数组。当前维度: Ex({E_near_x.ndim}D), Ey({E_near_y.ndim}D)")
+
+    # 检查近场网格尺寸是否与电场矩阵匹配
+    expected_shape = (len(y_near), len(x_near))
+    if E_near_x.shape != expected_shape or E_near_y.shape != expected_shape:
+        raise ValueError(f"近场电场矩阵的形状与坐标网格不匹配！\n期望形状: {expected_shape}\n实际形状: E_near_x{E_near_x.shape}, E_near_y{E_near_y.shape}")
+
+    # 检查远场坐标并转为 1D
+    x_far = np.atleast_1d(np.squeeze(np.asarray(x_far)))
+    y_far = np.atleast_1d(np.squeeze(np.asarray(y_far)))
+    z_far = np.atleast_1d(np.squeeze(np.asarray(z_far)))
+
+    if x_far.ndim != 1 or y_far.ndim != 1 or z_far.ndim != 1:
+        raise ValueError("x_far, y_far, z_far 必须是标量或一维数组。")
+
+    # 检查字符串参数类型
+    if not isinstance(mode, str) or not isinstance(software, str):
+        raise TypeError("mode 和 software 参数必须是字符串。")
+    
+    # 主体代码部分
+    from tqdm.auto import tqdm
     software = software.upper()
     if software in ['+', 'FDTD', 'Lumerical']:
         sg = 1.0
@@ -506,13 +594,6 @@ def RayleighSommerfeld_Vector(lamb, x_near, y_near, E_near_x, E_near_y, x_far, y
         sg = -1.0
     else:
         raise ValueError("software 参数必须是'+', '-', 'FDTD', 'LUMERICAL', 'COMSOL', 或 'CST'")
-
-    # 确保近场坐标也是数组
-    x_near, y_near = np.atleast_1d(x_near), np.atleast_1d(y_near)
-
-    # 远场转换为 ndarray
-    x_far, y_far, z_far = np.atleast_1d(x_far), np.atleast_1d(y_far), np.atleast_1d(z_far)
-
 
     # 计算近场积分面积元 dx * dy，保证能量量级随采样率守恒
     dx = x_near[1] - x_near[0] if len(x_near) > 1 else 1.0
@@ -669,8 +750,43 @@ def AngularSpectrum_Vector(lamb, x_near, y_near, E_near_x, E_near_y, x_far, y_fa
     E_total                   : 远场电场数据，形状为 (len(x_far), len(y_far), len(z_far))  
     E_far_x, E_far_y, E_far_z : 远场电场各个分量数据，形状为 (len(x_far), len(y_far), len(z_far))  
     '''
-    from tqdm.auto import tqdm
+    # 检查波长 (必须是正实数)
+    if not isinstance(lamb, (int, float)) or lamb <= 0:
+        raise ValueError(f"波长 lamb 必须是大于0的实数，当前输入为: {lamb}")
 
+    # 将近场坐标转为 1D numpy 数组
+    x_near = np.atleast_1d(np.squeeze(np.asarray(x_near)))
+    y_near = np.atleast_1d(np.squeeze(np.asarray(y_near)))
+    
+    if x_near.ndim != 1 or y_near.ndim != 1:
+        raise ValueError(f"x_near 和 y_near 必须是一维数组。当前维度: x_near({x_near.ndim}D), y_near({y_near.ndim}D)")
+
+    # 将近场电场分量转为复数数组
+    E_near_x = np.asarray(E_near_x, dtype=np.complex128)
+    E_near_y = np.asarray(E_near_y, dtype=np.complex128)
+
+    if E_near_x.ndim != 2 or E_near_y.ndim != 2:
+        raise ValueError(f"E_near_x 和 E_near_y 必须是二维数组。当前维度: Ex({E_near_x.ndim}D), Ey({E_near_y.ndim}D)")
+
+    # 检查近场网格尺寸是否与电场矩阵匹配
+    expected_shape = (len(y_near), len(x_near))
+    if E_near_x.shape != expected_shape or E_near_y.shape != expected_shape:
+        raise ValueError(f"近场电场矩阵的形状与坐标网格不匹配！\n期望形状: {expected_shape}\n实际形状: E_near_x{E_near_x.shape}, E_near_y{E_near_y.shape}")
+
+    # 检查远场坐标并转为 1D
+    x_far = np.atleast_1d(np.squeeze(np.asarray(x_far)))
+    y_far = np.atleast_1d(np.squeeze(np.asarray(y_far)))
+    z_far = np.atleast_1d(np.squeeze(np.asarray(z_far)))
+
+    if x_far.ndim != 1 or y_far.ndim != 1 or z_far.ndim != 1:
+        raise ValueError("x_far, y_far, z_far 必须是标量或一维数组。")
+
+    # 检查字符串参数类型
+    if not isinstance(mode, str) or not isinstance(software, str):
+        raise TypeError("mode 和 software 参数必须是字符串。")
+
+    # 主体代码部分
+    from tqdm.auto import tqdm
     software = software.upper()
     if software in ['+', 'FDTD', 'Lumerical']:
         sg = 1.0
@@ -678,9 +794,6 @@ def AngularSpectrum_Vector(lamb, x_near, y_near, E_near_x, E_near_y, x_far, y_fa
         sg = -1.0
     else:
         raise ValueError("software 参数必须是'+', '-', 'FDTD', 'LUMERICAL', 'COMSOL', 或 'CST'")
-
-    x_near, y_near = np.atleast_1d(x_near), np.atleast_1d(y_near)
-    x_far, y_far, z_far = np.atleast_1d(x_far), np.atleast_1d(y_far), np.atleast_1d(z_far)
 
     Nx, Ny = len(x_near), len(y_near)
     dx = x_near[1] - x_near[0] if Nx > 1 else 1.0

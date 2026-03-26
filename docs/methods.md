@@ -1,9 +1,9 @@
 # FDTD原生API的个人使用案例
-## 目录
- - [自定义函数](#自定义函数)
+
+ - [构建结构-自定义函数](#构建结构-自定义函数)
 
 
-## 自定义函数
+## 构建结构-自定义函数
 我们可以在`python`中使用`eval`或者`feval`函数来自定义一些`FDTD`内部函数来方便我们使用。同时，经过测试，在创建大结构超表面时，使用内部的`FDTD`语言会比使用`python`来调用时创建结构快得多。因此建议我们编写一些函数来创建结构，使用`python`来控制创建结构和进行仿真的进程。
 
 **注意：一定不要用python的for循环来构建大结构超表面，特别费时间**
@@ -12,6 +12,7 @@
 ```python
 from LumAPI import *
 
+# 透镜M1，NA=0.107，焦距为214um
 # --------常量定义-------
 um = 1e-6
 nm = 1e-9
@@ -20,9 +21,11 @@ n = 50 # 50层圆环
 wavelength = 450*nm
 P = 450*nm
 H = 1500*nm
-base_thickness = 0.3*um
+base_thickness = 3*um
 material_base = "Si3N4 - CNOP"
 material_ring = "SiO2 - CNOP"
+
+focal_length = 214*um
 
 r_in = [45,45,45,45,45,45,45,50,50,50,55,55,55,60,60,65,65,70,70,60,60,65,70,75,75,65,70,70,75,65,70,60,65,55,60,45,35,40,25,15,20,25,30,15,20,30,15,30,15,35]
 r_out = [200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,190,190,190,190,190,190,180,180,180,180,170,170,160,160,150,150,140,130,130,120,110,110,110,110,100,100,100,90,90,80,80]
@@ -145,7 +148,7 @@ function create_structure(P, H, r_in, r_out, n, material_ring){
 fdtd.eval(scripts)
 # fdtd.feval("create_structure.lsf") # 或者将scripts中的内容写入到lsf文件中，使用feval来执行
 
-# 调用scripts中定义的函数
+# 调用scripts中定义的函数，将参数传递进去
 fdtd.create_structure(P, H, r_in, r_out, n, material_ring)
 
 fdtd.save("metalens_CNOP.fsp")
@@ -153,7 +156,25 @@ fdtd.save("metalens_CNOP.fsp")
 fdtd.close() # 关闭程序
 ```
 
+## 远场计算
 
+### 使用LumAPI库衍射积分函数进行计算
+通过获取`FDTD`模拟的近场信息，计算远场结果。
 
+这里以上面的透镜作为示例：
+```python
+from LumAPI import *
 
+um = 1e-6
+nm = 1e-9
+
+lamb = 450*nm
+filename = "metalens_CNOP.fsp"
+profile_monitor = 'profile'
+
+# 获取近场数据
+fdtd = lumapi.FDTD(filename)
+x_near = 
+
+```
 
