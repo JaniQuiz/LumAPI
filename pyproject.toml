@@ -13,7 +13,7 @@ maintainers = [
 ]
 description = "Lumerical Python API 自动化配置工具"
 readme = "README.md"
-license = "GPL-3.0 license"
+license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
 keywords = ["lumerical", "fdtd", "janiquiz", "lumapi"]
 requires-python = ">=3.7"
