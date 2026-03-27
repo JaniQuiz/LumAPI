@@ -172,6 +172,30 @@ def create_cmap(color_list, cmap_name="custom_cmap"):
     return cmap
 
 
+
+def set_colorbar_range(mappable, vmin, vmax):
+    """
+    方便地设置 matplotlib colorbar 的显示范围。
+    
+    参数:
+    mappable : matplotlib 绘图对象 (例如 plt.imshow(), plt.scatter() 的返回值)
+               或者是一个 colorbar 对象。
+    vmin     : float, 颜色条的最小值
+    vmax     : float, 颜色条的最大值
+    """
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
+
+    # 如果传入的是 colorbar 对象，则提取其底层的 mappable 对象
+    if isinstance(mappable, mpl.colorbar.Colorbar):
+        mappable = mappable.mappable
+        
+    # 设置颜色范围
+    mappable.set_clim(vmin=vmin, vmax=vmax)
+    
+    # 获取当前的 figure 并请求重新绘制以更新显示
+    plt.draw()
+
 def Estimate_focal(lamb, r, focal_theory):
     '''
     理论预估焦距偏移率，参考文章：[Focal shift in metasurface based lenses](https://doi.org/10.1364/OE.26.008001)

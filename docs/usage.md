@@ -8,6 +8,9 @@
    - [3.2 瑞利-索末菲标量衍射积分](#32-rayleigh-sommerfeld-标量衍射积分函数)
    - [3.3 瑞利-索末菲矢量衍射积分](#33-rayleigh-sommerfeld-矢量衍射积分函数)
    - [3.4 矢量角谱理论衍射积分](#34-angularspectrum-矢量衍射积分函数)
+ - [4. 绘图相关](#4-绘图相关)
+   - [4.1 自定义colorbar的cmap](#41-自定义colorbar的cmap)
+   - [4.2 设置colorbar颜色映射的值域范围](#42-设置colorbar颜色映射的值域范围)
 
 
 ## 1. 基础 FDTD 调用
@@ -271,3 +274,65 @@ def AngularSpectrum_Vector(lamb, x_near, y_near, E_near_x, E_near_y, x_far, y_fa
 
 详细验证报告见[AngularSpectrum_Vector验证报告](AngularSpectrum_Vector.md)
 详细调用代码示例参照[AngularSpectrum_Vector.py](AngularSpectrum_Vector.py)
+
+## 4. 绘图相关
+### 4.1 自定义colorbar的cmap
+对于matplotlib库自带的cmap构建较为复杂，这里提供了自定义cmap的函数，支持多种颜色输入，可以方便地从论文中提取好看的绘图颜色来应用到自己的绘图中。
+
+函数签名：
+```python
+def create_cmap(color_list, cmap_name="custom_cmap")
+```
+**参数说明：**
+ - **color_list**: list, 颜色列表，按顺序定义渐变路径。列表元素支持：
+   - 颜色名称: str, 例如 'black', 'red', 'white'
+   - 十六进制色值: str, 例如 '#000000', '#FF5733', '#FFFFFF'
+   - RGB值: 浮点数元组 (范围 0.0-1.0), 例如 (0.0, 0.0, 1.0)
+   - RGB值: 整数元组 (范围 0-255), 例如 (0, 0, 255)
+ - **cmap_name**: str, 生成的 Colorbar 的名称，默认为 "custom_cmap"
+
+**返回值：**
+- **cmap**: matplotlib.colors.LinearSegmentedColormap, 自定义的colorbar颜色映射
+
+**代码示例：**
+```python
+cmap = create_cmap([(0, 0, 0), (0.0, 0.0, 1.0), 'red', '#FFFFFF']) #  黑色->蓝色->红色->白色
+plt.figure()
+plt.imshow(img, cmap=cmap)
+plt.colorbar()
+plt.show()
+```
+
+### 4.2 设置colorbar颜色映射的值域范围
+我们当然可以在绘图时就传入`vmin`和`vmax`参数，来设置colorbar的取值范围。但在希望动态更新图表时，使用这个函数可以帮助我们随时随地修改已经画好的颜色映射范围，而不需要重新绘制图表。
+
+函数签名：
+```python
+def set_colorbar_range(mappable, vmin, vmax)
+```
+
+**参数说明：**
+ - **mappable**: matplotlib 绘图对象 (例如 plt.imshow(), plt.scatter() 的返回值)或者是一个 colorbar 对象。
+ - **vmin**: float, colorbar 的最小值
+ - **vmax**: float, colorbar 的最大值
+
+**代码示例：**
+```python
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+# --- 图 1：默认范围 ---
+im1 = ax1.imshow(data, cmap='viridis')
+cb1 = fig.colorbar(im1, ax=ax1)
+ax1.set_title("默认 Colorbar 范围\n(根据数据自动缩放)")
+
+# --- 图 2：使用自定义函数设置范围 ---
+im2 = ax2.imshow(data, cmap='viridis')
+cb2 = fig.colorbar(im2, ax=ax2)
+ax2.set_title("自定义 Colorbar 范围\n(限制在 -5 到 5 之间)")
+
+# 调用函数，这里可以传入图像对象 im2 或颜色条 cb2
+set_colorbar_range(im2, vmin=-5, vmax=5) 
+
+plt.tight_layout()
+plt.show()
+```
