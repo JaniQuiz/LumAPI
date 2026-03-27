@@ -5,8 +5,17 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "LumAPI"
 version = "1.0.5"
+authors = [
+    {name = "JaniQuiz", email = "janiquiz@163.com"},
+]
+maintainers = [
+    {name = "JaniQuiz", email = "janiquiz@163.com"},
+]
 description = "Lumerical Python API 自动化配置工具"
 readme = "README.md"
+license = "GPL-3.0 license"
+license-files = ["LICENSE*"]
+keywords = ["lumerical", "fdtd", "janiquiz", "lumapi"]
 requires-python = ">=3.7"
 dependencies = [
     "numpy",
@@ -34,3 +43,9 @@ LumAPI = ["*.json"]
 # 排除根目录下的旧脚本
 [tool.setuptools.exclude-package-data]
 "*" = ["LumAPI_GUI.py", "LumAPI_CLI.py"]
+
+[project.urls]
+Homepage = "https://github.com/JaniQuiz/LumAPI"
+Documentation = "https://github.com/JaniQuiz/LumAPI/blob/main/docs/usage.md"
+Repository = "https://github.com/JaniQuiz/LumAPI"
+Issues = "https://github.com/JaniQuiz/LumAPI/issues"
