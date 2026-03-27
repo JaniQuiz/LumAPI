@@ -125,6 +125,35 @@ power = 0.5 * fdtd.integrate(np.real(Py), np.array([[1.0,3.0]]), x, z)
 ## 2. matlab数据文件.mat的读取和写入
 本库内置了`matlab`数据文件`.mat`的读取和写入功能。默认使用`matlab`的`v7.3`格式，支持`FDTD`的`24R1`以及更高版本的数据读取和写入。
 
+ - 通过`scipy`库实现`v7.3`之前的mat文件格式保存和读取
+ - 通过`h5py`库实现`v7.3`之后的mat文件格式保存和读取
+
+**函数签名：**
+```python
+def savemat(filename, data_dict, version='v7.3', auto_transpose=True)
+def loadmat(filename, auto_transpose=True)
+```
+
+**savemat**
+
+**参数说明：** 
+- `filename`: str, 文件名，包含扩展名。
+- `data_dict`: dict, 数据字典，键为变量名，值为变量值。
+- `version`: str, mat文件格式版本，默认为`v7.3`。
+   - `v7.3`: 使用`h5py`库实现mat文件格式保存，通用。
+   - `v7`: 使用`scipy`库实现mat文件格式保存，适用于`FDTD`的`24R1`以前的版本。
+- `auto_transpose`: bool, 是否自动转置数据，默认为`True`。
+*注：`matlab`数据文件`.mat`的数据保存维度顺序与`python`相反，例如`python`中形状为`(3,2,1)`在`matlab`中为`(1,2,3)`。*
+
+**loadmat**
+
+**参数说明：**
+- `filename`: str, 文件名，包含扩展名。
+- `auto_transpose`: bool, 是否自动转置数据，默认为`True`。
+
+**返回值：**
+- `data_dict`: dict，键为变量名，值为变量值。
+
 **代码示例：**
 ```python
 from LumAPI import savemat, loadmat
