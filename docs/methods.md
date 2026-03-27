@@ -1,6 +1,9 @@
 # FDTD原生API的个人使用案例
 
  - [构建结构-自定义函数](#构建结构-自定义函数)
+ - [远场计算](#远场计算)
+   - [使用LumAPI库衍射积分函数进行计算](#使用lumapi库衍射积分函数进行计算)
+   - [使用FDTD原生远场计算函数进行计算](#使用fdtd原生远场计算函数进行计算)
 
 
 ## 构建结构-自定义函数
@@ -244,3 +247,54 @@ E_far_xz = np.squeeze(E_far_xz)
 E_far_xy = np.abs(E_far[:,:,np.argmax(E_far_z)])
 E_far_xy = np.squeeze(E_far_xy)
 ```
+
+### 使用FDTD原生远场计算函数进行计算
+
+使用`FDTD`计算近场分布，然后使用`FDTD`的`farfieldexact3d`函数计算远场。
+
+```python
+from LumAPI import *
+
+um = 1e-6
+nm = 1e-9
+
+lamb = 450*nm
+filename = "metalens_CNOP.fsp"
+profile_monitor = 'profile'
+
+# 目标远场
+x_para = np.round(np.linspace(-22.5*um, 22.5*um, 450))
+y_para = np.round(np.linspace(-22.5*um, 22.5*um, 450))
+z_para = np.round(np.linspace(0, 400*um, 400))
+
+# 计算z轴获取焦距
+x_far = 0
+y_far = 0
+z_far = z_para
+fdtd = lumapi.FDTD(filename)
+E_far_z = fdtd.farfieldexact3d(profile_monitor, x_far, y_far, z_far,{"field": "E and H"})
+fdtd.close()
+E_far_z = np.squeeze(E_far_z)
+z_focal = z_far[np.argmax(E_far_z)]
+
+# 计算xz平面
+x_far = x_para
+y_far = 0
+z_far = z_para
+fdtd = lumapi.FDTD(filename)
+E_far_xz = fdtd.farfieldexact3d(profile_monitor, x_far, y_far, z_far,{"field": "E and H"})
+fdtd.close()
+E_far_xz = np.squeeze(E_far_xz)
+
+# 计算xy平面
+x_far = x_para
+y_far = y_para
+z_far = z_focal
+fdtd = lumapi.FDTD(filename)
+E_far_xy = fdtd.farfieldexact3d(profile_monitor, x_far, y_far, z_far,{"field": "E and H"})
+fdtd.close()
+E_far_xy = np.squeeze(E_far_xy)
+```
+
+
+
