@@ -9,7 +9,7 @@ import re, platform
 current_dir = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(current_dir, 'config.json')
 
-
+# ******************mat处理函数******************
 def savemat(filename, data_dict, version='v7.3', auto_transpose=True):
     """
     将字典数据写入 MATLAB .mat 文件。
@@ -122,7 +122,7 @@ def loadmat(filename, auto_transpose=True):
 
     return data_dict
 
-
+# *****************绘图增强函数******************
 def create_cmap(color_list, cmap_name="custom_cmap"):
     """
     根据传入的颜色列表创建自定义的渐变色映射
@@ -171,8 +171,6 @@ def create_cmap(color_list, cmap_name="custom_cmap"):
     
     return cmap
 
-
-
 def set_colorbar_range(mappable, vmin, vmax):
     """
     方便地设置 matplotlib colorbar 的显示范围。
@@ -196,6 +194,7 @@ def set_colorbar_range(mappable, vmin, vmax):
     # 获取当前的 figure 并请求重新绘制以更新显示
     plt.draw()
 
+# *****************近远场变换函数*****************
 def Estimate_focal(lamb, r, focal_theory):
     '''
     理论预估焦距偏移率，参考文章：[Focal shift in metasurface based lenses](https://doi.org/10.1364/OE.26.008001)
@@ -384,7 +383,6 @@ def Kirchhoff(lamb, x_near, y_near, E_near, x_far, y_far, z_far, mode='numba', s
         
     return E_far
 
-
 def RayleighSommerfeld_Scalar(lamb, x_near, y_near, E_near, x_far, y_far, z_far, mode='numba', software='+'):
     '''
     瑞利-索末菲(Rayleigh-Sommerfeld) 标量衍射积分公式
@@ -548,7 +546,6 @@ def RayleighSommerfeld_Scalar(lamb, x_near, y_near, E_near, x_far, y_far, z_far,
         raise ValueError('Invalid mode (请检查输入的 mode 参数)')
         
     return E_far
-
 
 def RayleighSommerfeld_Vector(lamb, x_near, y_near, E_near_x, E_near_y, x_far, y_far, z_far, mode='numba', software='+'):
     '''
@@ -751,7 +748,6 @@ def RayleighSommerfeld_Vector(lamb, x_near, y_near, E_near_x, E_near_y, x_far, y
     E_total = np.sqrt(np.abs(E_far_x)**2 + np.abs(E_far_y)**2 + np.abs(E_far_z)**2)
     return E_total, E_far_x, E_far_y, E_far_z
 
-
 def AngularSpectrum_Vector(lamb, x_near, y_near, E_near_x, E_near_y, x_far, y_far, z_far, mode='numba', software='+'):
     '''
     矢量角谱法 (Vector Angular Spectrum) 衍射传播
@@ -946,7 +942,7 @@ def AngularSpectrum_Vector(lamb, x_near, y_near, E_near_x, E_near_y, x_far, y_fa
     else:
         raise ValueError("Invalid mode. Please use 'fft' or 'numba'.")
 
-
+# ***************lumerical相关函数***************
 def detect_version(lumerical_root):
     """检测Lumerical安装目录下的有效版本号"""
     try:
