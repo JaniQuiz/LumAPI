@@ -14,17 +14,24 @@
 ## 📦 如何安装 
 [安装方式](install.md)
 
-## 📖 衍射积分函数验证文档
-为确保我们的衍射积分函数的准确性，我们进行了验证，见[文档目录](docs/menu.md)
+## 🗂️ 文档目录
 
-## 💻 使用指南
+### 使用指南
+
  - [使用文档](docs/usage.md)
- - [相关案例](docs/methods.md)
+ - [使用案例](docs/methods.md)
 
-## 许可证
+### 衍射积分函数验证
+
+ - [基尔霍夫(Kirchhoff)标量衍射积分函数验证](docs/Kirchhoff.md)
+ - [瑞利-索末菲(Rayleigh-Sommerfeld)标量衍射积分函数验证](docs/Rayleigh-Sommerfeld_Scalar.md)
+ - [瑞利-索末菲(Rayleigh-Sommerfeld)矢量衍射积分函数验证](docs/Rayleigh-Sommerfeld_Vector.md)
+ - [矢量角谱(Angular Spectrum)矢量衍射积分函数验证](docs/AngularSpectrum_Vector.md)
+
+## 📜 许可证
 本库遵循[GPL-3.0](https://www.gnu.org/licenses/gpl-3.0.html)开源许可证
 
-## 联系作者
+## 📧 联系作者
  - **作者**: [JaniQuiz](https://github.com/JaniQuiz)  
  - **邮箱**: janiquiz@163.com
  - **项目主页**: [LumAPI](https://github.com/JaniQuiz/LumAPI)
