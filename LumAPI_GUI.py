@@ -250,14 +250,22 @@ class LumericalGUI:
 
     def export_files_local(self):
         try:
-            # 指定不同文件的源目录
-            src_files = [("lumapi.py", self.bundled_lumapi_dir), ("config.json", self.local_lumapi_dir)]
-            for f_name, src_dir in src_files:
-                src = os.path.join(src_dir, f_name)
-                dst = os.path.join(self.output_dir, f_name)
-                if not os.path.exists(src): raise FileNotFoundError(f"Missing {f_name}")
-                shutil.copy2(src, dst)
-            messagebox.showinfo("成功", f"文件已导出到: {self.output_dir}")
+            # 遍历打包的 LumAPI 目录进行导出
+            for item in os.listdir(self.bundled_lumapi_dir):
+                # 核心防御：跳过内置的空 config.json
+                # 跳过不需要的 pip 脚本文件
+                if (item == "config.json" and os.path.exists(self.config_path)) or item in ["gui.py", "cli.py"]:
+                    continue
+                
+                src_path = os.path.join(self.bundled_lumapi_dir, item)
+                dst_path = os.path.join(self.local_lumapi_dir, item)
+                
+                if os.path.isdir(src_path):
+                    shutil.copytree(src_path, dst_path, dirs_exist_ok=True)
+                else:
+                    shutil.copy2(src_path, dst_path)
+                    
+            messagebox.showinfo("成功", f"LumAPI 文件夹资源已成功导出 (已过滤不需要的文件) 到:\n{self.local_lumapi_dir}")
         except Exception as e:
             messagebox.showerror("错误", str(e))
 
@@ -360,19 +368,17 @@ class LumericalGUI:
 
         # 复制文件
         try:
-            files_to_copy = [("__init__.py", self.local_lumapi_dir), 
-                             ("lumapi.py", self.bundled_lumapi_dir), 
-                             ("config.json", self.local_lumapi_dir)]
-            for f_name, src_dir in files_to_copy:
-                src = os.path.join(src_dir, f_name)
-                dst = os.path.join(target_lumapi_dir, f_name)
-                if os.path.exists(src):
-                    shutil.copy2(src, dst)
-                else:
-                    if f_name == "config.json":
-                        raise FileNotFoundError("config.json 未找到，请先生成配置")
-                    if f_name == "__init__.py":
-                        with open(dst, 'w') as f: f.write("from LumAPI.lumapi import *\n")
+            # 复制文件夹，同时利用 ignore_patterns 忽略不必要的文件
+            shutil.copytree(self.bundled_lumapi_dir, target_lumapi_dir, dirs_exist_ok=True, 
+                            ignore=shutil.ignore_patterns("gui.py", "cli.py", "config.json"))
+            
+            # 强制用本地生效的配置文件覆盖过去
+            for f in ["config.json", "__init__.py"]:
+                local_file = os.path.join(self.local_lumapi_dir, f)
+                if os.path.exists(local_file):
+                    shutil.copy2(local_file, os.path.join(target_lumapi_dir, f))
+                elif f == "config.json":
+                    raise FileNotFoundError("config.json 未找到，请先生成配置")
 
             messagebox.showinfo("安装成功", f"LumAPI 库已成功安装到:\n{target_lumapi_dir}\n\n在该 Python 环境中可直接使用: import LumAPI")
         except Exception as e:

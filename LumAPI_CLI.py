@@ -222,18 +222,15 @@ def install_to_python_env():
     try:
         if not os.path.exists(target_dir): os.makedirs(target_dir)
         
-        # 区分文件来源：代码读取自 Temp，配置读取自本地Exe同级
-        files_to_copy = [("__init__.py", LOCAL_LUMAPI_DIR), 
-                         ("lumapi.py", BUNDLED_LUMAPI_DIR), 
-                         ("config.json", LOCAL_LUMAPI_DIR)]
+        # 复制文件夹，同时利用 ignore_patterns 忽略 gui.py、cli.py 以及内置的空 config.json
+        shutil.copytree(BUNDLED_LUMAPI_DIR, target_dir, dirs_exist_ok=True, 
+                        ignore=shutil.ignore_patterns("gui.py", "cli.py", "config.json"))
         
-        for f, src_dir in files_to_copy:
-            src = os.path.join(src_dir, f)
-            dst = os.path.join(target_dir, f)
-            if os.path.exists(src):
-                shutil.copy2(src, dst)
-            elif f == "__init__.py":
-                 with open(dst, 'w') as f_obj: f_obj.write("from LumAPI.lumapi import *\n")
+        # 强制用本地生效的 config.json 和 __init__.py 覆盖过去
+        for f in ["config.json", "__init__.py"]:
+            local_file = os.path.join(LOCAL_LUMAPI_DIR, f)
+            if os.path.exists(local_file):
+                shutil.copy2(local_file, os.path.join(target_dir, f))
         
         print(f"\n[成功] 已安装到 {target_dir}")
         print("您现在可以在该 Python 环境中使用 'import LumAPI'")
@@ -256,11 +253,24 @@ def export_files_local():
         print("[错误] 无有效配置")
         return
     try:
-        # lumapi.py 从 BUNDLED_LUMAPI_DIR 提取，config.json 直接提取当前配置
-        shutil.copy2(os.path.join(BUNDLED_LUMAPI_DIR, "lumapi.py"), os.path.join(OUTPUT_DIR, "lumapi.py"))
-        shutil.copy2(CONFIG_PATH, os.path.join(OUTPUT_DIR, "config.json"))
-        print(f"[成功] 文件已导出到: {OUTPUT_DIR}")
-    except Exception as e: print(f"[错误] {e}")
+        # 遍历打包的 LumAPI 目录进行导出
+        for item in os.listdir(BUNDLED_LUMAPI_DIR):
+            # 核心防御：跳过内置的空 config.json，避免覆盖本地已有配置
+            # 跳过不需要的 pip 脚本文件
+            if (item == "config.json" and os.path.exists(CONFIG_PATH)) or item in ["gui.py", "cli.py"]:
+                continue 
+            
+            src_path = os.path.join(BUNDLED_LUMAPI_DIR, item)
+            dst_path = os.path.join(LOCAL_LUMAPI_DIR, item)
+            
+            if os.path.isdir(src_path):
+                shutil.copytree(src_path, dst_path, dirs_exist_ok=True)
+            else:
+                shutil.copy2(src_path, dst_path)
+                
+        print(f"[成功] LumAPI 文件夹内容已导出 (已过滤不需要的文件) 到: {LOCAL_LUMAPI_DIR}")
+    except Exception as e: 
+        print(f"[错误] 导出失败: {e}")
 
 def load_lumapi(lumerical_path, version):
     lumapi_path = get_lumapi_path(lumerical_path, version)
