@@ -8,21 +8,34 @@ import shutil
 import subprocess
 
 # --- 路径处理逻辑 ---
-if getattr(sys, 'frozen', False):
-    BASE_DIR = sys._MEIPASS 
-    OUTPUT_DIR = os.path.dirname(sys.executable)
+if "__compiled__" in globals():
+    # Nuitka 编译环境
+    BUNDLE_DIR = os.path.dirname(os.path.abspath(__file__)) # 解压后的临时目录
+    EXEC_DIR = os.path.dirname(os.path.abspath(sys.argv[0])) # exe所在真实目录
+elif getattr(sys, 'frozen', False):
+    # PyInstaller 兼容备用
+    BUNDLE_DIR = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    EXEC_DIR = os.path.dirname(sys.executable)
 else:
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    OUTPUT_DIR = BASE_DIR
+    # 源码运行
+    BUNDLE_DIR = os.path.dirname(os.path.abspath(__file__))
+    EXEC_DIR = BUNDLE_DIR
 
-LUMAPI_DIR = os.path.join(BASE_DIR, "LumAPI")
-CONFIG_PATH = os.path.join(LUMAPI_DIR, "config.json")
-INIT_PATH = os.path.join(LUMAPI_DIR, "__init__.py")
+OUTPUT_DIR = EXEC_DIR
 
-if not getattr(sys, 'frozen', False) and not os.path.exists(LUMAPI_DIR):
-    os.makedirs(LUMAPI_DIR, exist_ok=True)
+# 内部附带文件的只读路径 (用于读取打包进去的 lumapi.py)
+BUNDLED_LUMAPI_DIR = os.path.join(BUNDLE_DIR, "LumAPI")
 
-# 确保 __init__.py 存在
+# 本地外部路径 (放在 exe 同级目录，用于持久化保存配置)
+LOCAL_LUMAPI_DIR = os.path.join(EXEC_DIR, "LumAPI")
+CONFIG_PATH = os.path.join(LOCAL_LUMAPI_DIR, "config.json")
+INIT_PATH = os.path.join(LOCAL_LUMAPI_DIR, "__init__.py")
+
+# 确保本地外部配置目录存在
+if not os.path.exists(LOCAL_LUMAPI_DIR):
+    os.makedirs(LOCAL_LUMAPI_DIR, exist_ok=True)
+
+# 确保 __init__.py 存在于本地目录
 if not os.path.exists(INIT_PATH):
     try:
         with open(INIT_PATH, 'w') as f: f.write("from LumAPI.lumapi import *\n")
@@ -113,8 +126,8 @@ def validate_path(lumerical_root):
 
 def save_config(lumerical_path, version):
     try:
-        if not getattr(sys, 'frozen', False) and not os.path.exists(LUMAPI_DIR):
-            os.makedirs(LUMAPI_DIR, exist_ok=True)
+        if not os.path.exists(LOCAL_LUMAPI_DIR):
+            os.makedirs(LOCAL_LUMAPI_DIR, exist_ok=True)
         with open(CONFIG_PATH, 'w') as f:
             json.dump({'lumerical_path': os.path.abspath(lumerical_path), 'version': version}, f, indent=4)
         print(f"[成功] 配置已保存。")
@@ -208,9 +221,14 @@ def install_to_python_env():
 
     try:
         if not os.path.exists(target_dir): os.makedirs(target_dir)
-        files = ["__init__.py", "lumapi.py", "config.json"]
-        for f in files:
-            src = os.path.join(LUMAPI_DIR, f)
+        
+        # 区分文件来源：代码读取自 Temp，配置读取自本地Exe同级
+        files_to_copy = [("__init__.py", LOCAL_LUMAPI_DIR), 
+                         ("lumapi.py", BUNDLED_LUMAPI_DIR), 
+                         ("config.json", LOCAL_LUMAPI_DIR)]
+        
+        for f, src_dir in files_to_copy:
+            src = os.path.join(src_dir, f)
             dst = os.path.join(target_dir, f)
             if os.path.exists(src):
                 shutil.copy2(src, dst)
@@ -238,7 +256,8 @@ def export_files_local():
         print("[错误] 无有效配置")
         return
     try:
-        shutil.copy2(os.path.join(LUMAPI_DIR, "lumapi.py"), os.path.join(OUTPUT_DIR, "lumapi.py"))
+        # lumapi.py 从 BUNDLED_LUMAPI_DIR 提取，config.json 直接提取当前配置
+        shutil.copy2(os.path.join(BUNDLED_LUMAPI_DIR, "lumapi.py"), os.path.join(OUTPUT_DIR, "lumapi.py"))
         shutil.copy2(CONFIG_PATH, os.path.join(OUTPUT_DIR, "config.json"))
         print(f"[成功] 文件已导出到: {OUTPUT_DIR}")
     except Exception as e: print(f"[错误] {e}")

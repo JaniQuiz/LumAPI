@@ -16,20 +16,29 @@ class LumericalGUI:
         self.root.title("Lumerical 接口配置工具")
         
         # --- 路径处理核心逻辑 ---
-        if getattr(sys, 'frozen', False):
-            self.base_dir = sys._MEIPASS 
-            self.output_dir = os.path.dirname(sys.executable)
+        if "__compiled__" in globals():
+            self.bundle_dir = os.path.dirname(os.path.abspath(__file__))
+            self.exec_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+        elif getattr(sys, 'frozen', False):
+            self.bundle_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+            self.exec_dir = os.path.dirname(sys.executable)
         else:
-            self.base_dir = os.path.dirname(os.path.abspath(__file__))
-            self.output_dir = self.base_dir
+            self.bundle_dir = os.path.dirname(os.path.abspath(__file__))
+            self.exec_dir = self.bundle_dir
 
-        self.lumapi_dir = os.path.join(self.base_dir, "LumAPI")
-        self.config_path = os.path.join(self.lumapi_dir, "config.json")
-        self.init_file_path = os.path.join(self.lumapi_dir, "__init__.py")
+        self.output_dir = self.exec_dir
+
+        # 内置资源临时解压目录
+        self.bundled_lumapi_dir = os.path.join(self.bundle_dir, "LumAPI")
+        # 外部存储目录（在 exe 同级），用来持久化存储配置
+        self.local_lumapi_dir = os.path.join(self.exec_dir, "LumAPI")
         
-        # 确保目录存在
-        if not getattr(sys, 'frozen', False) and not os.path.exists(self.lumapi_dir):
-            os.makedirs(self.lumapi_dir, exist_ok=True)
+        self.config_path = os.path.join(self.local_lumapi_dir, "config.json")
+        self.init_file_path = os.path.join(self.local_lumapi_dir, "__init__.py")
+        
+        # 确保本地持久化目录存在
+        if not os.path.exists(self.local_lumapi_dir):
+            os.makedirs(self.local_lumapi_dir, exist_ok=True)
             
         # 确保 __init__.py 存在
         if not os.path.exists(self.init_file_path):
@@ -39,8 +48,8 @@ class LumericalGUI:
             except: pass
 
         self.create_widgets()
-        self.check_config()      # 检查 Lumerical 配置
-        self.check_python_envs() # 检查 Python 环境
+        self.check_config()      
+        self.check_python_envs()
 
     def create_widgets(self):
         # 配置列权重
@@ -223,8 +232,8 @@ class LumericalGUI:
         path = self.path_var.get()
         version = self.detect_version(path)
         try:
-            if not getattr(sys, 'frozen', False):
-                 os.makedirs(self.lumapi_dir, exist_ok=True)
+            if not os.path.exists(self.local_lumapi_dir):
+                 os.makedirs(self.local_lumapi_dir, exist_ok=True)
             with open(self.config_path, 'w') as f:
                 json.dump({'lumerical_path': os.path.abspath(path), 'version': version}, f, indent=4)
             
@@ -241,9 +250,10 @@ class LumericalGUI:
 
     def export_files_local(self):
         try:
-            src_files = ["lumapi.py", "config.json"]
-            for f_name in src_files:
-                src = os.path.join(self.lumapi_dir, f_name)
+            # 指定不同文件的源目录
+            src_files = [("lumapi.py", self.bundled_lumapi_dir), ("config.json", self.local_lumapi_dir)]
+            for f_name, src_dir in src_files:
+                src = os.path.join(src_dir, f_name)
                 dst = os.path.join(self.output_dir, f_name)
                 if not os.path.exists(src): raise FileNotFoundError(f"Missing {f_name}")
                 shutil.copy2(src, dst)
@@ -350,9 +360,11 @@ class LumericalGUI:
 
         # 复制文件
         try:
-            files_to_copy = ["__init__.py", "lumapi.py", "config.json"]
-            for f_name in files_to_copy:
-                src = os.path.join(self.lumapi_dir, f_name)
+            files_to_copy = [("__init__.py", self.local_lumapi_dir), 
+                             ("lumapi.py", self.bundled_lumapi_dir), 
+                             ("config.json", self.local_lumapi_dir)]
+            for f_name, src_dir in files_to_copy:
+                src = os.path.join(src_dir, f_name)
                 dst = os.path.join(target_lumapi_dir, f_name)
                 if os.path.exists(src):
                     shutil.copy2(src, dst)
