@@ -1,7 +1,7 @@
 import keyword
 import os
 # 从你的 LumAPI 包中导入实例化对象
-from LumAPI.lumapi import lumapi
+from LumAPI import lumapi
 
 def generate_ultimate_stubs():
     products = ['FDTD', 'MODE', 'DEVICE', 'INTERCONNECT']
