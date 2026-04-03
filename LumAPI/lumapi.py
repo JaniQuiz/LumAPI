@@ -1081,6 +1081,10 @@ class lumerical:
         except Exception:
             self.lumapi = None
 
+    def __bool__(self):
+        """判断配置是否成功，允许直接使用 if lumapi: 来判断"""
+        return self.lumapi is not None
+
     def _check_config_and_prompt(self):
         """核心逻辑：检查配置状态，若无效则引导用户使用 LumAPI 命令"""
         if self.lumapi is None:
