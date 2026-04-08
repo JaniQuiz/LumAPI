@@ -1,4 +1,4 @@
-# Lumerical FDTD Python 自用脚本整理
+# LumAPI：Lumerical Python接口的轻量级封装与增强库
 
 本项目旨在简化 Lumerical FDTD 软件与 Python 环境的交互流程，提供自动化的路径配置工具，并封装了matlab数据文件.mat的读取和写入，以及常用的光学仿真后处理算法（如近场至远场变换）。
 
