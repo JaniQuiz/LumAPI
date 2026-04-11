@@ -22,7 +22,7 @@ jobs:
     - name: Remove old artifacts
       uses: c-hive/gha-remove-artifacts@v1
       with:
-        age: '5 days' # 删除多久之前的构建内容 '<number> <unit>', e.g. 5 days, 2 years, 90 seconds, parsed by Moment.js
+        age: '0 days' # 删除多久之前的构建内容 '<number> <unit>', e.g. 5 days, 2 years, 90 seconds, parsed by Moment.js
         # Optional inputs
         # skip-tags: true  # 跳过发布过标签的构建
         # skip-recent: 5
