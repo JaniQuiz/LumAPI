@@ -4,7 +4,7 @@
 from .lumapi import (
     lumapi, lumerical, LumFuncBase,
     FDTD, MODE, DEVICE, INTERCONNECT,
-    savemat, loadmat, 
+    savemat, loadmat, save_h5, load_h5, 
     create_cmap, set_colorbar_range,
     Estimate_focal, Kirchhoff, 
     RayleighSommerfeld_Scalar, RayleighSommerfeld_Vector, AngularSpectrum_Vector
@@ -14,7 +14,7 @@ from .lumapi import (
 __all__ = [
     'lumapi', 'lumerical', 'LumFuncBase',
     'FDTD', 'MODE', 'DEVICE', 'INTERCONNECT',
-    'savemat', 'loadmat', 
+    'savemat', 'loadmat', 'save_h5', 'load_h5',
     'create_cmap', 'set_colorbar_range',
     'Estimate_focal', 'Kirchhoff', 
     'RayleighSommerfeld_Scalar', 'RayleighSommerfeld_Vector', 'AngularSpectrum_Vector'

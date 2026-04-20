@@ -9,7 +9,7 @@ import re, platform
 current_dir = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(current_dir, 'config.json')
 
-# ******************mat处理函数******************
+# ******************数据处理函数******************
 def savemat(filename, data_dict, version='v7.3', auto_transpose=True):
     """
     将字典数据写入 MATLAB .mat 文件。
@@ -174,6 +174,93 @@ def loadmat(filename, auto_transpose=True, squeeze_me=True):
 
     return data_dict
 
+def save_h5(filename, data_dict, compression=True):
+    """
+    将字典数据写入标准 HDF5 文件，支持复数处理和压缩。
+    不包含 MATLAB 特征头，确保 Origin 和标准 HDF5 查看器完美兼容。
+
+    参数 (Parameters):
+    ------------------
+    filename : str
+        输出的 .h5 文件路径和名称。
+    data_dict : dict
+        需要写入的数据字典。
+    compression : bool, 可选 (默认: True)
+        是否进行数据压缩，使文件更小
+
+    返回 (Returns):
+    ---------------
+    bool
+        写入成功返回 True。
+    """
+    import h5py
+    # 自动补全后缀
+    if not filename.endswith('.h5') and not filename.endswith('.hdf5'):
+        filename += '.h5'
+        
+    with h5py.File(filename, 'w') as f:
+        for key, val in data_dict.items():
+            data = np.asarray(val)
+            
+            # 处理数据类型：将整型转为双精度浮点
+            if np.issubdtype(data.dtype, np.integer):
+                data = data.astype(np.float64)
+            
+            # 压缩设置：对于大数据非常有帮助
+            dataset_args = {"compression": "gzip", "compression_opts": 4} if compression else {}
+            
+            if np.iscomplexobj(data):
+                # 采用复合类型存储复数
+                complex_dt = np.dtype([('real', data.real.dtype), ('imag', data.imag.dtype)])
+                mat_complex = np.empty(data.shape, dtype=complex_dt)
+                mat_complex['real'] = data.real
+                mat_complex['imag'] = data.imag
+                f.create_dataset(key, data=mat_complex, **dataset_args)
+                # 添加属性标记这是一个复数，方便后续自动读取
+                f[key].attrs['is_complex'] = 1
+            else:
+                f.create_dataset(key, data=data, **dataset_args)
+                
+    # print(f"[成功] 数据已保存至标准 HDF5: {filename}")
+    return True
+
+def load_h5(filename):
+    """
+    从标准 HDF5 文件读取数据，并自动恢复复数结构。
+
+    参数 (Parameters):
+    ------------------
+    filename : str
+        读取的 .h5 文件路径和名称。
+
+    返回 (Returns):
+    ---------------
+    dict
+        读取的数据字典。
+    """
+    import h5py
+    if not os.path.exists(filename):
+        raise FileNotFoundError(f"找不到文件: {filename}")
+        
+    data_dict = {}
+    try:
+        with h5py.File(filename, 'r') as f:
+            for key in f.keys():
+                data = np.array(f[key])
+                
+                # 自动检测并恢复复数
+                # 检查是否存在属性标记，或检查复合类型字段
+                is_complex = f[key].attrs.get('is_complex', 0)
+                has_fields = data.dtype.names is not None and 'real' in data.dtype.names
+                
+                if is_complex or has_fields:
+                    data = data['real'] + 1j * data['imag']
+                
+                data_dict[key] = data
+        return data_dict
+    except Exception as e:
+        print(f"错误：读取 H5 文件失败 - {str(e)}")
+        return None
 
 # *****************绘图增强函数******************
 def create_cmap(color_list, cmap_name="custom_cmap"):
