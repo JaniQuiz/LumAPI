@@ -235,7 +235,7 @@ def save_h5(filename, data_dict, compression=True):
     # print(f"[成功] 数据已保存至标准 HDF5: {filename}")
     return True
 
-def load_h5(filename):
+def load_h5(filename, squeeze_me=True):
     """
     从标准 HDF5 文件读取数据，并自动恢复复数结构。
 
@@ -243,6 +243,10 @@ def load_h5(filename):
     ------------------
     filename : str
         读取的 .h5 文件路径和名称。
+    squeeze_me : bool, 可选 (默认: True)
+        是否开启数组压缩功能。
+        如果开启，会自动将 1xN 或 Nx1 数组降维为真正的 1D NumPy 数组 (N,)。
+        同时会将 1x1 的矩阵提取为单纯的标量。
 
     返回 (Returns):
     ---------------
@@ -267,6 +271,21 @@ def load_h5(filename):
                 if is_complex or has_fields:
                     data = data['real'] + 1j * data['imag']
                 
+                # 维度压缩处理
+                if isinstance(data, np.ndarray):
+                    # 维度压缩
+                    if squeeze_me:
+                        # np.squeeze 会自动剥离所有大小为 1 的维度
+                        data = np.squeeze(data)
+                    
+                    # 提取标量处理
+                    if data.ndim == 0:
+                        # 提取 0维 数组为真正的标量值
+                        data = data[()]
+                    elif not squeeze_me and data.shape == (1, 1):
+                        # 如果用户关闭了压缩，兜底提取 1x1 矩阵为标量
+                        data = data[0, 0]
+
                 data_dict[key] = data
         return data_dict
     except Exception as e:
