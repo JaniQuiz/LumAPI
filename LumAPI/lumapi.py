@@ -200,6 +200,9 @@ def save_h5(filename, data_dict, compression=True):
     with h5py.File(filename, 'w') as f:
         for key, val in data_dict.items():
             data = np.asarray(val)
+
+            # 将所有数据（包括标量）强制提升为至少2维来兼容matlab和origin的读取。
+            data = np.atleast_2d(data)
             
             # 处理数据类型：将整型转为双精度浮点
             if np.issubdtype(data.dtype, np.integer):
@@ -207,7 +210,8 @@ def save_h5(filename, data_dict, compression=True):
             
             # 压缩设置：对于大数据非常有帮助
             dataset_args = {}
-            if compression and data.ndim > 0:
+            # 仅在数据量超过一定大小时启用压缩
+            if compression and data.ndim > 1024:
                 dataset_args = {"compression": "gzip", "compression_opts": 4}
             
             if np.iscomplexobj(data):
