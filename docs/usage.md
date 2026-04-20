@@ -3,7 +3,7 @@
     - [1.1 完全支持原生调用](#11-完全支持原生调用)
     - [1.2 对原本API的不足进行优化](#12-对原本api的不足进行优化)
     - [1.3 代码输入提示](#13-代码输入提示v113版本及以后)
- - [2. matlab数据文件.mat的读取和写入](#2-matlab数据文件mat的读取和写入)
+ - [2. 数据文件.mat和.h5的读取和写入支持](#2-数据文件mat和h5的读取和写入支持)
  - [3. 高级算法库：衍射积分函数](#3-高级算法库衍射积分函数)
    - [3.1 基尔霍夫衍射积分](#31-kirchhoff函数)
    - [3.2 瑞利-索末菲标量衍射积分](#32-rayleigh-sommerfeld-标量衍射积分函数)
@@ -133,8 +133,12 @@ power = 0.5 * fdtd.integrate(np.real(Py), np.array([[1.0,3.0]]), x, z)
 ![代码输入提示](explain_pics/autocompletion.png)
 
 
-## 2. matlab数据文件.mat的读取和写入
+## 2. 数据文件.mat和.h5的读取和写入支持
+
+### 2.1 matlab数据文件.mat的读取和写入
 本库内置了`matlab`数据文件`.mat`的读取和写入功能。默认使用`matlab`的`v7.3`格式，支持`FDTD`的`24R1`以及更高版本的数据读取和写入。此外，当保存的数据中包含有`int`类型数据的`numpy`数组，本函数将会自动转换为`float`类型。
+*建议：如果数据文件大小不超过`2G`，建议使用`v7`格式保存获取更好兼容性，如果数据文件过大超过`2G`，建议使用`v7.3`格式保存。*
+*注意：`v7.3`格式的`mat`文件无法被origin等软件读取，请使用`v7`格式或者保存成`h5`文件(空间占用更小，适合大数据文件)。*
 
  - 通过`scipy`库实现`v7.3`之前的mat文件格式保存和读取
  - 通过`h5py`库实现`v7.3`之后的mat文件格式保存和读取
@@ -185,6 +189,52 @@ savemat('data.mat', data) # 默认使用v7.3的格式保存
 
 # 读取mat文件
 data_load = loadmat('data.mat') # 自动检测两种格式的mat文件，无需设置参数即可读取
+x = data_load['x']
+y = data_load['y']
+E_near = data_load['E_near']
+```
+
+### 2.2 h5数据文件.h5的读取和写入
+`h5`数据文件为`HDF`格式编码的数据，本质上`v7.3`的`mat`文件也是这种编码。这种编码能够对数据进行分块压缩储存，从而节省存储空间，适用于大数据文件。同时`matlab`也支持读取该文件格式。
+
+**函数签名：**
+```python
+def save_h5(filename, data_dict, compression=True)
+def load_h5(filename)
+```
+
+**save_h5**
+
+**参数说明：** 
+- `filename`: str, 文件名，包含扩展名。
+- `data_dict`: dict, 数据字典，键为变量名，值为变量值。
+- `compression`: bool, 是否进行数据压缩，默认为`True`。
+
+**load_h5**
+
+**参数说明：**
+- `filename`: str, 文件名，包含扩展名。
+
+**返回值：**
+- `data_dict`: dict，键为变量名，值为变量值。
+
+**代码示例：**
+```python
+from LumAPI import save_h5, load_h5
+
+# 写入h5文件
+x = np.array([1, 2, 3])
+y = np.array([4, 5, 6])
+E_near = np.array([[1+1j, 2+2j], [3+3j, 4+4j]])
+data = {
+    'x': x,
+    'y': y,
+    'E_near': E_near
+}
+save_h5('data.h5', data)
+
+# 读取h5文件
+data_load = load_h5('data.h5')
 x = data_load['x']
 y = data_load['y']
 E_near = data_load['E_near']
