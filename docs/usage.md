@@ -218,6 +218,7 @@ def load_h5(filename)
 
 **参数说明：**
 - `filename`: str, 文件名，包含扩展名。
+- `squeeze_me`: bool, 是否对数据进行压缩，默认为`True`。对于一维数组和单个数据，`save_h5`函数会自动将其转为`1xN`形状的数组，这里在读取时进行压缩来更符合`python`的习惯。
 
 **返回值：**
 - `data_dict`: dict，键为变量名，值为变量值。
